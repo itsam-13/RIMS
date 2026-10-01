@@ -1,0 +1,106 @@
+name: Full-Stack CI Pipeline
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  # ========================================================
+  # Job 1: Build & Verify Backend (Spring Boot + Java 27)
+  # ========================================================
+  backend:
+    name: Backend CI (Spring Boot 4 / Java 27)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: inventory
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 27
+        uses: actions/setup-java@v4
+        with:
+          java-version: '27'
+          distribution: 'oracle'
+          cache: maven
+
+      - name: Make Maven Wrapper Executable
+        run: chmod +x mvnw
+
+      - name: Compile Backend Sources
+        run: ./mvnw clean compile
+
+      - name: Execute Tests
+        env:
+          DB_URL: jdbc:postgresql://localhost:5432/inventory
+          DB_USERNAME: postgres
+          DB_PASSWORD: password
+          PORT: 8082
+          JWT_SECRET: ci_test_secret_key_minimum_256_bits_length_123456789
+        run: ./mvnw test
+
+      - name: Package Spring Boot JAR
+        run: ./mvnw package -DskipTests
+
+      - name: Upload Backend Executable JAR
+        uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: rims-backend-build
+          path: backend/target/*.jar
+          retention-days: 7
+
+  # ========================================================
+  # Job 2: Build & Verify Frontend (Angular 22 + Node.js 22)
+  # ========================================================
+  frontend:
+    name: Frontend CI (Angular 22 / Node.js 22)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Build Angular Application Bundle
+        run: npm run build
+
+      - name: Upload Frontend Production Bundle
+        uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: rims-frontend-dist
+          path: frontend/dist/rims-frontend
+          retention-days: 7
