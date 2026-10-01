@@ -31,3 +31,11 @@ build/
 
 ### VS Code ###
 .vscode/
+docs
+
+### Environment & Secret Overrides ###
+.env
+*.env
+backend/.env
+application-local.yaml
+**/application-local.yaml

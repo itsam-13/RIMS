@@ -1,0 +1,11 @@
+# Copy this file to application-local.yaml and set your local credentials:
+# cp application-local.yaml.example application-local.yaml
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/inventory
+    username: postgres
+    password: your_database_password_here
+
+jwt:
+  secret: your_jwt_secret_key_here
