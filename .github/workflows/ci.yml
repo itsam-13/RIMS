@@ -28,7 +28,7 @@ jobs:
         ports:
           - 5432:5432
         options: >-
-          --health-cmd pg_isready
+          --health-cmd "pg_isready -U postgres -d inventory"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
@@ -52,9 +52,6 @@ jobs:
 
       - name: Execute Tests
         env:
-          DB_URL: jdbc:postgresql://localhost:5432/inventory
-          DB_USERNAME: postgres
-          DB_PASSWORD: password
           PORT: 8082
           JWT_SECRET: ci_test_secret_key_minimum_256_bits_length_123456789
         run: ./mvnw test
