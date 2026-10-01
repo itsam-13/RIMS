@@ -27,6 +27,9 @@ public class ProductService {
         if (productRepository.existsBySku(product.getSku())) {
             throw new IllegalArgumentException("A product with SKU '" + product.getSku() + "' already exists");
         }
+        if (product.getCategoryId() != null) {
+            product.setCategory(resolveCategory(product.getCategoryId()));
+        }
         return productRepository.save(product);
     }
     public Product updateProduct(Long id,Product updatedProduct){
@@ -42,9 +45,11 @@ public class ProductService {
         existing.setPrice(updatedProduct.getPrice());
         existing.setReorderLevel(updatedProduct.getReorderLevel());
         existing.setCategoryId(updatedProduct.getCategoryId());
+        if (updatedProduct.getCategoryId() != null) {
+            existing.setCategory(resolveCategory(updatedProduct.getCategoryId()));
+        }
 
         return productRepository.save(existing);
-
     }
     public void deleteProduct(Long id){
         if(!productRepository.existsById(id)){

@@ -32,7 +32,6 @@ public class CustomerOrder {
     @NotBlank
     private String customerName;
 
-    @NotNull
     @Enumerated(EnumType.STRING)
     private Status status = Status.PLACED;
 

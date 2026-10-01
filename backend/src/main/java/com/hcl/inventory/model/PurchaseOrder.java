@@ -38,7 +38,6 @@ public class PurchaseOrder {
     @JoinColumn(name = "warehouse_id")
     private Warehouse warehouse;
 
-    @NotNull
     @Enumerated(EnumType.STRING)
     private Status status = Status.PENDING;
 
