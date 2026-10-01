@@ -131,8 +131,8 @@ Incoming JSON requests send flat foreign keys (e.g. `productId`, `warehouseId`, 
 - **Token Utility:** [`JwtUtil.java`](file:///c:/Users/acer/Desktop/HCLTech-RIMS/src/main/java/com/hcl/inventory/security/JwtUtil.java) (generates & parses HMAC SHA-256 tokens)
 - **Authentication Filter:** [`JwtAuthFilter.java`](file:///c:/Users/acer/Desktop/HCLTech-RIMS/src/main/java/com/hcl/inventory/security/JwtAuthFilter.java) (inspects `Authorization: Bearer <token>`, assigns `ROLE_` authorities)
 - **Password Hasher:** [`PasswordConfig.java`](file:///c:/Users/acer/Desktop/HCLTech-RIMS/src/main/java/com/hcl/inventory/config/PasswordConfig.java) (`BCryptPasswordEncoder`)
-- **Key & Expiration:** In [`application.yaml`](file:///c:/Users/acer/Desktop/HCLTech-RIMS/src/main/resources/application.yaml):
-  - `jwt.secret`: `"dlRQWJrpkt71ooEzYwMiCxhWN5ntDcTUPQwj1xGL4Hw="`
+- **Key & Expiration:** In [`application.yaml`](file:///c:/Users/acer/Desktop/HCLTech-RIMS/backend/src/main/resources/application.yaml):
+  - `jwt.secret`: Configured via `${JWT_SECRET}` or local override
   - `jwt.expiration-ms`: `86400000` (24 hours)
 
 ### Route Protection Summary
@@ -266,10 +266,10 @@ All endpoints begin with `/api`. Unless marked **[Public]**, all requests requir
 ### 🟢 Gotcha 1: JDK 27 vs Lombok Compilation [RESOLVED]
 - Fixed in `pom.xml` by setting `<java.version>27</java.version>` and `<lombok.version>1.18.48</lombok.version>`. Maven compile now completes with `BUILD SUCCESS`.
 
-### 🟢 Gotcha 2: PostgreSQL SCRAM Password & Database Setup [RESOLVED]
-- Database `inventory` was created in PostgreSQL, and `password: riza` was configured in `application.yaml`.
-- Configured server port to `8081` in `application.yaml` (`server.port: 8081`).
-- Verified live application launch on port 8081.
+### 🟢 Gotcha 2: PostgreSQL Database Setup [RESOLVED]
+- Database `inventory` was created in PostgreSQL, and connection credentials configured via `application-local.yaml` / environment variables.
+- Configured server port to `8082` in `application.yaml` (`server.port: ${PORT:8082}`).
+- Verified live application launch on port 8082.
 
 ### 🟡 Gotcha 2: Category Is Not Bound in `ProductService`
 - **Symptom:** When creating or updating a product with `categoryId`, `product.getCategory()` remains `null` in the database.
