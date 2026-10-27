@@ -4,11 +4,11 @@
 [![Spring Boot](https://img.shields.io/badge/Spring_Boot-4.1.1-6DB33F?style=for-the-badge&logo=spring-boot&logoColor=white)](https://spring.io/projects/spring-boot)
 [![Angular](https://img.shields.io/badge/Angular-22-DD0031?style=for-the-badge&logo=angular&logoColor=white)](https://angular.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-18+-316192?style=for-the-badge&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16+-316192?style=for-the-badge&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
 [![Spring Security](https://img.shields.io/badge/Spring_Security-JWT-6DB33F?style=for-the-badge&logo=spring-security&logoColor=white)](https://spring.io/projects/spring-security)
 [![License](https://img.shields.io/badge/License-Proprietary-red?style=for-the-badge)](#)
 
-An enterprise-grade, distributed **Retail Inventory Management System (RIMS)** built with a **Spring Boot 4 (Java 27)** REST API backend and an **Angular 22** client frontend. The platform provides real-time multi-warehouse stock auditing, supplier procurement lifecycles, atomic customer order fulfillment with stock reservation, inter-hub logistics transfers, and stateless JWT role-based security (`ADMIN`, `WAREHOUSE_MANAGER`, `SALES`).
+An enterprise-grade, distributed **Retail Inventory Management System (RIMS)** built with a **Spring Boot 4 (Java 27)** REST API backend and an **Angular 22** client frontend. The platform provides real-time multi-warehouse stock auditing, supplier procurement lifecycles, atomic customer order fulfillment with upfront stock reservation, inter-hub logistics transfers, and stateless JWT role-based security (`ADMIN`, `WAREHOUSE_MANAGER`, `SALES`).
 
 The frontend features a **Deep Forest Green** color palette and a modern **10-Card Bento-Grid** executive command dashboard with glowing telemetry rings, neon sparkline curves, and a minimalist icon dock sidebar.
 
@@ -18,15 +18,20 @@ The frontend features a **Deep Forest Green** color palette and a modern **10-Ca
 
 - [Visual Design & Palette](#visual-design--palette)
 - [Key Features](#key-features)
-- [System Architecture](#system-architecture)
+- [System Architecture (UML Component Diagram)](#system-architecture)
 - [Repository Structure](#repository-structure)
-- [Domain & Data Models](#domain--data-models)
+- [Domain & Data Models (UML Class Diagram)](#domain--data-models)
+- [Business Workflows & UML Diagrams](#business-workflows--uml-diagrams)
+  - [1. Customer Sales Order & Stock Reservation (Sequence)](#1-customer-sales-order--stock-reservation-sequence)
+  - [2. Supplier Procurement & Goods Receipt (Sequence)](#2-supplier-procurement--goods-receipt-sequence)
+  - [3. Inter-Warehouse Stock Transfer (Sequence)](#3-inter-warehouse-stock-transfer-sequence)
+  - [4. Order Lifecycle State Machines (Statechart)](#4-order-lifecycle-state-machines-statechart)
+  - [5. Authentication & JWT Authorization Flow (Sequence)](#5-authentication--jwt-authorization-flow-sequence)
 - [Security & Authentication](#security--authentication)
 - [REST API Reference](#rest-api-reference)
 - [Prerequisites & Setup](#prerequisites--setup)
 - [Running the Full-Stack Application](#running-the-full-stack-application)
 - [Frontend Components & Modules](#frontend-components--modules)
-- [Documentation & AI Agent Continuity](#documentation--ai-agent-continuity)
 
 ---
 
@@ -76,51 +81,73 @@ The user interface follows a bespoke **Deep Forest Green Bento-Grid** design sys
 
 ## System Architecture
 
-```
-┌────────────────────────────────────────────────────────────────────────────────────────┐
-│                                Angular 22 Client Web App                                │
-│                              (Runs on http://localhost:4200)                            │
-│                                                                                        │
-│  ┌────────────────────────┐  ┌──────────────────────────────────────────────────────┐  │
-│  │    Slim Icon Dock      │  │     Bento Grid Dashboard / Module Views              │  │
-│  │ (Dashboard, Inventory, │  │ (Command Center, Matrix, Catalog, Hubs, POs, Orders) │  │
-│  │ Catalog, POs, Orders)  │  └──────────────────────────┬───────────────────────────┘  │
-│  └────────────────────────┘                             │                              │
-│                                                         │ Angular HTTP Interceptor     │
-│                                                         │ Bearer <JWT Token>           │
-└─────────────────────────────────────────────────────────┼──────────────────────────────┘
-                                                          │
-                                                          │ Reverse Proxy (/api)
-                                                          │ or Direct CORS
-                                                          ▼
-┌────────────────────────────────────────────────────────────────────────────────────────┐
-│                              Spring Boot 4.1.1 REST API                                │
-│                              (Runs on http://localhost:8082)                            │
-│                                                                                        │
-│  ┌────────────────────────┐           ┌─────────────────────────────────────────────┐  │
-│  │  JwtAuthFilter & CORS  │──────────►│              REST Controllers               │  │
-│  │  SecurityFilterChain   │           │ Auth, Users, Products, Categories, Hubs, PO │  │
-│  └────────────────────────┘           └──────────────────────┬──────────────────────┘  │
-│                                                              │                         │
-│                                                              ▼                         │
-│                                       ┌─────────────────────────────────────────────┐  │
-│                                       │          Transactional Services             │  │
-│                                       │ Business validation, state machines, audits │  │
-│                                       └──────────────────────┬──────────────────────┘  │
-│                                                              │                         │
-│                                                              ▼                         │
-│                                       ┌─────────────────────────────────────────────┐  │
-│                                       │          Spring Data JPA / Hibernate        │  │
-│                                       │ 11 Entity Models, DTOs & Custom Queries     │  │
-│                                       └──────────────────────┬──────────────────────┘  │
-└──────────────────────────────────────────────────────────────┼─────────────────────────┘
-                                                               │
-                                                               │ JDBC Driver
-                                                               ▼
-                                                  ┌──────────────────────────┐
-                                                  │   PostgreSQL Database    │
-                                                  │  (localhost:5432/inventory)│
-                                                  └──────────────────────────┘
+The system implements a decoupled, modern multi-tier architecture with an **Angular 22** client communicating over REST/JSON with a **Spring Boot 4.1.1** backend, backed by **PostgreSQL**:
+
+```mermaid
+flowchart TD
+    subgraph ClientTier["Frontend Client Tier (Angular 22 - Port 4200)"]
+        UI["Bento-Grid Dashboard & View Modules\n(Dashboard, Inventory, Catalog, Hubs, Orders, Movements)"]
+        Dock["Slim Navigation Dock Sidebar"]
+        AuthG["AuthGuard\n(Client-Side Route Protection)"]
+        Interceptor["AuthInterceptor\n(Bearer JWT Injection)"]
+        APISvc["InventoryApiService & AuthService"]
+        
+        Dock --> UI
+        AuthG -.-> UI
+        UI --> APISvc
+        APISvc --> Interceptor
+    end
+
+    subgraph SecurityTier["Security & Gateway Tier (Spring Security)"]
+        Proxy["Angular Proxy /api (Forward to 8082)"]
+        CORS["CorsFilter"]
+        JWTFilter["JwtAuthFilter\n(HMAC-SHA256 Token Validation)"]
+        SecCtx["SecurityContextHolder\n(Role Enforcement: ADMIN, WAREHOUSE_MANAGER, SALES)"]
+        
+        Interceptor --> Proxy
+        Proxy --> CORS
+        CORS --> JWTFilter
+        JWTFilter --> SecCtx
+    end
+
+    subgraph ControllerTier["REST Controller Tier (Spring Boot 4.1.1 - Port 8082)"]
+        SecCtx --> AuthCtrl["AuthController\n/api/auth"]
+        SecCtx --> ProdCtrl["Product & Category Controllers\n/api/products, /api/categories"]
+        SecCtx --> WhCtrl["Warehouse & Inventory Controllers\n/api/warehouses, /api/inventory"]
+        SecCtx --> POCtrl["PurchaseOrderController\n/api/purchase-orders"]
+        SecCtx --> CustCtrl["CustomerOrderController\n/api/orders"]
+        SecCtx --> MvmtCtrl["StockMovementController\n/api/stock-movements"]
+        SecCtx --> UserCtrl["UserController\n/api/users"]
+    end
+
+    subgraph ServiceTier["Business Service Tier (@Service, @Transactional)"]
+        AuthCtrl --> UserSvc["UserService & JwtUtil"]
+        ProdCtrl --> ProdSvc["ProductService & CategoryService"]
+        WhCtrl --> WhSvc["WarehouseService"]
+        WhCtrl --> InvSvc["InventoryService\n(Delta Adjust, Physical Overwrite, Availability Check)"]
+        POCtrl --> POSvc["PurchaseOrderService\n(Procurement State Machine)"]
+        CustCtrl --> CustSvc["CustomerOrderService\n(Stock Reservation & Sales Order Lifecycle)"]
+        MvmtCtrl --> MvmtSvc["StockMovementService\n(IN, OUT, Atomic TRANSFER Ledger)"]
+        
+        POSvc --> InvSvc
+        POSvc --> MvmtSvc
+        CustSvc --> InvSvc
+        MvmtSvc --> InvSvc
+    end
+
+    subgraph PersistenceTier["Data Access Tier (Spring Data JPA / Hibernate)"]
+        UserSvc --> Repos["Spring Data JPA Repositories\n(ProductRepo, InventoryRepo, WarehouseRepo,\nPurchaseOrderRepo, CustomerOrderRepo, StockMovementRepo, UserRepo)"]
+        ProdSvc --> Repos
+        WhSvc --> Repos
+        InvSvc --> Repos
+        POSvc --> Repos
+        CustSvc --> Repos
+        MvmtSvc --> Repos
+    end
+
+    subgraph DatabaseTier["Database Tier (PostgreSQL 16+)"]
+        Repos -->|"JDBC Driver (Port 5432)"| PG[("PostgreSQL Database\n(inventory)")]
+    end
 ```
 
 ---
@@ -177,9 +204,9 @@ HCLTech-RIMS/
 │   ├── angular.json               # Angular CLI configuration with proxy setup
 │   ├── package.json               # Node dependencies (Angular 22, RxJS, Vite)
 │   └── proxy.conf.json            # Reverse proxy forwarding /api to port 8082
-├── docs/                          # Architecture & design documentation
+├── docs/                          # Architecture & design specifications
 │   ├── DESIGN.md                  # Comprehensive visual design system authority
-│   ├── PROJECT_CRUX.md            # Crux & agent handover documentation
+│   ├── PROJECT_CRUX.md            # Crux & system architecture specification
 │   └── TEST_REPORT.md             # System test audit & defect matrix
 └── README.md                      # Project documentation and quickstart
 ```
@@ -187,6 +214,140 @@ HCLTech-RIMS/
 ---
 
 ## Domain & Data Models
+
+### UML Class Diagram
+
+The following UML class diagram models all 11 JPA domain entities, their primary attributes, associations, and operational enumerations:
+
+```mermaid
+classDiagram
+    direction TB
+
+    class User {
+        +Long id
+        +String username
+        +String email
+        +String password
+        +Role role
+    }
+
+    class Category {
+        +Long id
+        +String name
+    }
+
+    class Product {
+        +Long id
+        +String name
+        +String sku
+        +BigDecimal price
+        +Integer reorderLevel
+    }
+
+    class Warehouse {
+        +Long id
+        +String name
+        +String location
+        +Integer capacity
+    }
+
+    class Inventory {
+        +Long id
+        +Integer quantity
+    }
+
+    class Supplier {
+        +Long id
+        +String name
+        +String contactEmail
+        +String phone
+        +Integer leadTimeDays
+    }
+
+    class PurchaseOrder {
+        +Long id
+        +Status status
+        +LocalDateTime orderDate
+    }
+
+    class PurchaseOrderItem {
+        +Long id
+        +Integer quantity
+        +BigDecimal unitCost
+    }
+
+    class CustomerOrder {
+        +Long id
+        +String customerName
+        +Status status
+        +LocalDateTime orderDate
+    }
+
+    class OrderItem {
+        +Long id
+        +Integer quantity
+        +BigDecimal unitPrice
+    }
+
+    class StockMovement {
+        +Long id
+        +MovementType type
+        +Integer quantity
+        +LocalDateTime timestamp
+    }
+
+    class Role {
+        <<enumeration>>
+        ADMIN
+        WAREHOUSE_MANAGER
+        SALES
+    }
+
+    class POStatus {
+        <<enumeration>>
+        PENDING
+        ORDERED
+        RECEIVED
+        CANCELLED
+    }
+
+    class CustomerOrderStatus {
+        <<enumeration>>
+        PLACED
+        SHIPPED
+        DELIVERED
+        CANCELLED
+    }
+
+    class StockMovementType {
+        <<enumeration>>
+        IN
+        OUT
+        TRANSFER
+    }
+
+    Category "1" --> "*" Product : classifies
+    Product "1" <-- "*" Inventory : stocks
+    Warehouse "1" <-- "*" Inventory : stores
+    Supplier "1" --> "*" PurchaseOrder : supplies
+    Warehouse "1" <-- "*" PurchaseOrder : receives at
+    PurchaseOrder "1" *-- "*" PurchaseOrderItem : contains
+    Product "1" <-- "*" PurchaseOrderItem : specifies
+    Warehouse "1" <-- "*" CustomerOrder : fulfills from
+    User "1" <-- "*" CustomerOrder : processed by
+    CustomerOrder "1" *-- "*" OrderItem : contains
+    Product "1" <-- "*" OrderItem : specifies
+    Product "1" <-- "*" StockMovement : tracks
+    Warehouse "1" <-- "*" StockMovement : fromWarehouse
+    Warehouse "1" <-- "*" StockMovement : toWarehouse
+
+    User ..> Role
+    PurchaseOrder ..> POStatus
+    CustomerOrder ..> CustomerOrderStatus
+    StockMovement ..> StockMovementType
+```
+
+### Entity Schema Summary
 
 | Entity | Table | Key Fields | Description |
 | :--- | :--- | :--- | :--- |
@@ -204,21 +365,222 @@ HCLTech-RIMS/
 
 ---
 
+## Business Workflows & UML Diagrams
+
+### 1. Customer Sales Order & Stock Reservation (Sequence)
+
+Customer order placement enforces **strict upfront stock validation** across all line items before decrementing stock. If any single product has insufficient quantity in the target warehouse, the transaction is rejected immediately with zero changes applied to the database:
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Sales as Sales Operator
+    participant Client as Angular Client (UI)
+    participant Interceptor as AuthInterceptor
+    participant Filter as JwtAuthFilter
+    participant Controller as CustomerOrderController
+    participant OrderSvc as CustomerOrderService
+    participant InvSvc as InventoryService
+    participant DB as PostgreSQL Database
+
+    Sales->>Client: Build Order (Customer Name, Warehouse, Items)
+    Client->>Interceptor: POST /api/orders (Order Payload)
+    Interceptor->>Filter: Attach Header [Authorization: Bearer <JWT>]
+    Filter->>Filter: Verify JWT Signature & Claims
+    Filter->>Controller: Forward Authenticated Request
+    Controller->>OrderSvc: placeOrder(customerOrder)
+    
+    Note over OrderSvc,DB: Begin @Transactional Boundary
+    
+    loop For Every Line Item
+        OrderSvc->>InvSvc: getAvailableQuantity(productId, warehouseId)
+        InvSvc->>DB: SELECT quantity FROM inventory WHERE product_id=? AND warehouse_id=?
+        DB-->>InvSvc: Available Quantity
+        InvSvc-->>OrderSvc: Return Available Stock Count
+    end
+
+    alt Insufficient Stock on ANY Item
+        OrderSvc-->>Controller: Throw IllegalArgumentException ("Insufficient stock...")
+        Controller-->>Client: 400 Bad Request {error message}
+        Client-->>Sales: Display Warning Toast: "Insufficient Stock in Warehouse"
+    else All Items Available
+        loop For Every Line Item
+            OrderSvc->>InvSvc: adjustQuantity(productId, warehouseId, -item.quantity)
+            InvSvc->>DB: UPDATE inventory SET quantity = quantity - ?
+        end
+        OrderSvc->>DB: INSERT INTO customer_orders (status='PLACED', ...)
+        OrderSvc->>DB: INSERT INTO order_items (...)
+        DB-->>OrderSvc: Persisted CustomerOrder Entity
+        OrderSvc-->>Controller: Return CustomerOrder
+        Controller-->>Client: 201 Created (JSON CustomerOrder)
+        Client-->>Sales: Show Success Toast & Refresh Dashboard Gauges
+    end
+```
+
+### 2. Supplier Procurement & Goods Receipt (Sequence)
+
+Inbound procurement flows from initial creation to vendor confirmation and goods receipt. When goods arrive at the destination warehouse, the manager marks the PO as `RECEIVED`, which **atomically increments inventory** and writes an immutable audit record:
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Mgr as Warehouse Manager
+    participant Client as Angular Client (UI)
+    participant Controller as PurchaseOrderController
+    participant POSvc as PurchaseOrderService
+    participant InvSvc as InventoryService
+    participant MvmtSvc as StockMovementService
+    participant DB as PostgreSQL Database
+
+    Mgr->>Client: Click "Mark Received" for PO #ID
+    Client->>Controller: PATCH /api/purchase-orders/{id}/mark-received
+    Controller->>POSvc: markAsReceived(id)
+
+    Note over POSvc,DB: Begin @Transactional Boundary
+    POSvc->>DB: SELECT * FROM purchase_orders WHERE id=?
+    DB-->>POSvc: PurchaseOrder (Status: ORDERED, target warehouseId)
+
+    loop For Each Line Item in PO
+        POSvc->>InvSvc: adjustOrCreateQuantity(productId, warehouseId, +quantity)
+        InvSvc->>DB: UPDATE inventory SET quantity = quantity + ? (or INSERT if new)
+        POSvc->>MvmtSvc: recordMovement(type: IN, toWarehouseId, quantity)
+        MvmtSvc->>DB: INSERT INTO stock_movements (type='IN', ...)
+    end
+
+    POSvc->>DB: UPDATE purchase_orders SET status='RECEIVED'
+    DB-->>POSvc: Updated Record
+    POSvc-->>Controller: Return Updated PurchaseOrder
+    Controller-->>Client: 200 OK (JSON PurchaseOrder)
+    Client-->>Mgr: Notification: "Stock received & inventory incremented"
+```
+
+### 3. Inter-Warehouse Stock Transfer (Sequence)
+
+Inter-hub logistics movements transfer inventory between facilities. The system atomically decrements the source facility (ensuring stock is available) and increments the destination facility, recording a single `TRANSFER` audit entry:
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Mgr as Warehouse Manager
+    participant Client as Angular Client (Transfer Modal)
+    participant Controller as StockMovementController
+    participant MvmtSvc as StockMovementService
+    participant InvSvc as InventoryService
+    participant DB as PostgreSQL Database
+
+    Mgr->>Client: Select Product, Source Hub, Destination Hub, Quantity
+    Client->>Controller: POST /api/stock-movements {type: TRANSFER, fromId, toId, qty}
+    Controller->>MvmtSvc: recordMovement(stockMovement)
+
+    Note over MvmtSvc,DB: Begin @Transactional Boundary
+    MvmtSvc->>InvSvc: adjustQuantity(productId, fromWarehouseId, -quantity)
+    InvSvc->>DB: UPDATE inventory SET quantity = quantity - ? (WHERE >= ?)
+    
+    alt Source Hub Has Insufficient Stock
+        DB-->>InvSvc: Stock < 0 Error / Record Not Found
+        InvSvc-->>MvmtSvc: Throw IllegalArgumentException
+        MvmtSvc-->>Controller: Rollback Transaction
+        Controller-->>Client: 400 Bad Request ("Insufficient stock at source warehouse")
+        Client-->>Mgr: Error Toast: Transfer aborted
+    else Source Decrement Successful
+        MvmtSvc->>InvSvc: adjustOrCreateQuantity(productId, toWarehouseId, +quantity)
+        InvSvc->>DB: UPDATE/INSERT inventory at destination hub
+        MvmtSvc->>DB: INSERT INTO stock_movements (type='TRANSFER', from_id, to_id, qty)
+        DB-->>MvmtSvc: Saved StockMovement Entity
+        MvmtSvc-->>Controller: Return Saved Movement
+        Controller-->>Client: 201 Created (JSON StockMovement)
+        Client-->>Mgr: Success Toast & Updated Inventory Matrix
+    end
+```
+
+### 4. Order Lifecycle State Machines (Statechart)
+
+The lifecycles of Customer Orders and Purchase Orders are governed by strict finite state machines:
+
+```mermaid
+stateDiagram-v2
+    direction LR
+
+    state CustomerOrder {
+        [*] --> PLACED : placeOrder()<br/>[Validates & Reserves Stock]
+        PLACED --> SHIPPED : markAsShipped()<br/>[Dispatched from Warehouse]
+        SHIPPED --> DELIVERED : markAsDelivered()<br/>[Delivered to Customer]
+        DELIVERED --> [*]
+
+        PLACED --> CANCELLED_CO : cancelOrder()<br/>[Restores Stock to Hub]
+        SHIPPED --> CANCELLED_CO : cancelOrder()<br/>[Restores Stock to Hub]
+        CANCELLED_CO --> [*]
+    }
+
+    state PurchaseOrder {
+        [*] --> PENDING : createOrder()<br/>[Draft PO Created]
+        PENDING --> ORDERED : markAsOrdered()<br/>[Confirmed with Supplier]
+        ORDERED --> RECEIVED : markAsReceived()<br/>[Atomically Increments Stock]
+        RECEIVED --> [*]
+
+        PENDING --> CANCELLED_PO : cancelOrder()
+        ORDERED --> CANCELLED_PO : cancelOrder()
+        CANCELLED_PO --> [*]
+    }
+```
+
+### 5. Authentication & JWT Authorization Flow (Sequence)
+
+Authentication is completely stateless. Clients authenticate against `/api/auth/login` to obtain an HMAC SHA-256 token, which is stored locally and attached to subsequent requests:
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User as Operator
+    participant Client as Angular Client (Login Terminal)
+    participant AuthFilter as JwtAuthFilter
+    participant AuthCtrl as AuthController
+    participant AuthMgr as AuthenticationManager
+    participant JwtUtil as JwtUtil
+    participant ProtectedCtrl as Protected Controllers (/api/**)
+
+    rect rgb(22, 56, 50)
+    Note over User,JwtUtil: 1. Authentication Phase
+    User->>Client: Submit Credentials (username, password)
+    Client->>AuthCtrl: POST /api/auth/login {username, password}
+    AuthCtrl->>AuthMgr: authenticate(UsernamePasswordAuthenticationToken)
+    AuthMgr->>AuthMgr: Verify password using BCrypt
+    AuthCtrl->>JwtUtil: generateToken(username, roles)
+    JwtUtil-->>AuthCtrl: Signed JWT Token (HMAC SHA-256, 24h validity)
+    AuthCtrl-->>Client: 200 OK {token, role, username}
+    Client->>Client: Store token in localStorage
+    end
+
+    rect rgb(11, 43, 38)
+    Note over User,ProtectedCtrl: 2. Authenticated Request Phase
+    User->>Client: Navigate to Inventory Matrix / Warehouses
+    Client->>AuthFilter: HTTP GET /api/inventory [Authorization: Bearer <token>]
+    AuthFilter->>JwtUtil: validateToken(token) & extractUsername()
+    JwtUtil-->>AuthFilter: Valid Claims (Subject: user, Role: WAREHOUSE_MANAGER)
+    AuthFilter->>AuthFilter: Set SecurityContextHolder(Authentication)
+    AuthFilter->>ProtectedCtrl: Forward to InventoryController
+    ProtectedCtrl-->>Client: 200 OK [Inventory Payload]
+    Client-->>User: Render Stock Matrix View
+    end
+```
+
+---
+
 ## Security & Authentication
 
 Authentication is handled via stateless **JSON Web Tokens (JWT)**:
 
-- **Tokens**: HMAC SHA-256 tokens (`jjwt-api 0.12.6`) with a 24-hour expiration.
-- **Authorization Header**: Requests include `Authorization: Bearer <token>`.
+- **Tokens**: HMAC SHA-256 tokens (`jjwt-api 0.12.6`) with a 24-hour expiration window.
+- **Authorization Header**: Client requests include `Authorization: Bearer <token>`.
 - **Public Routes**:
   - `POST /api/auth/login` — Returns token and role.
-  - `POST /api/users/register` — Registers new account with BCrypt password hashing.
+  - `POST /api/users/register` — Registers a new user account with BCrypt password hashing.
 - **Admin Only**:
-  - All `DELETE /api/**` endpoints require `ROLE_ADMIN`.
-- **Role Permissions**:
-  - `ADMIN`: Unrestricted master privileges.
+  - All `DELETE /api/**` endpoints are strictly restricted to `ROLE_ADMIN`.
+- **Granular Role Permissions**:
+  - `ADMIN`: Unrestricted system privileges.
   - `WAREHOUSE_MANAGER`: Inventory management, stock movements, and purchase orders.
-  - `SALES`: Customer order creation and fulfillment tracking.
+  - `SALES`: Customer sales order creation and fulfillment tracking.
 - **Quick Demo Profiles**:
   - **Admin**: `admin` / `admin123` (or `password`)
   - **Manager**: `manager` / `password`
@@ -313,10 +675,10 @@ Create the PostgreSQL database:
 CREATE DATABASE inventory;
 ```
 
-*(Or via shell: `createdb -U postgres inventory`)*
+*(Or via terminal: `createdb -U postgres inventory`)*
 
 ### 2. Configure Credentials
-Review [`backend/src/main/resources/application.yaml`](file:///c:/Users/acer/Desktop/HCLTech-RIMS/backend/src/main/resources/application.yaml) and [`application-local.yaml`](file:///c:/Users/acer/Desktop/HCLTech-RIMS/backend/src/main/resources/application-local.yaml) for PostgreSQL settings:
+Review [`backend/src/main/resources/application.yaml`](file:///c:/Users/acer/Desktop/HCLTech-RIMS/backend/src/main/resources/application.yaml) and [`application-local.yaml`](file:///c:/Users/acer/Desktop/HCLTech-RIMS/backend/src/main/resources/application-local.yaml) for PostgreSQL connection settings:
 
 ```yaml
 server:
@@ -341,7 +703,7 @@ cd backend
 .\mvnw.cmd spring-boot:run
 ```
 
-The Spring Boot REST API starts at **`http://localhost:8082`**.
+The Spring Boot REST API will start at **`http://localhost:8082`**.
 
 ### 2. Start the Frontend Client (Port 4200)
 Open a second terminal:
@@ -351,7 +713,7 @@ cd frontend
 npm start
 ```
 
-The Angular client starts at **`http://localhost:4200`** with proxy routing configured to automatically forward all `/api` calls to port `8082`.
+The Angular client will start at **`http://localhost:4200`** with proxy routing configured in `proxy.conf.json` to automatically forward all `/api` calls to port `8082`.
 
 ---
 
@@ -369,11 +731,3 @@ The Angular client starts at **`http://localhost:4200`** with proxy routing conf
 | **[Stock Movements](file:///c:/Users/acer/Desktop/HCLTech-RIMS/frontend/src/app/components/stock-movements/stock-movements.component.ts)** | `/stock-movements` | Immutable audit trail and modal for executing inter-warehouse stock transfers. |
 | **[Suppliers Directory](file:///c:/Users/acer/Desktop/HCLTech-RIMS/frontend/src/app/components/suppliers/suppliers.component.ts)** | `/suppliers` | Procurement vendor registry tracking contact emails, phones, and average delivery lead times. |
 | **[Operator Registry](file:///c:/Users/acer/Desktop/HCLTech-RIMS/frontend/src/app/components/users/users.component.ts)** | `/users` | Admin-only identity provisioning and role assignments (`ADMIN`, `WAREHOUSE_MANAGER`, `SALES`). |
-
----
-
-## Documentation & AI Agent Continuity
-
-- **[docs/PROJECT_CRUX.md](file:///c:/Users/acer/Desktop/HCLTech-RIMS/docs/PROJECT_CRUX.md)** — Comprehensive architectural handbook, Gotchas catalog, and database schema mappings.
-- **[docs/DESIGN.md](file:///c:/Users/acer/Desktop/HCLTech-RIMS/docs/DESIGN.md)** — Visual design authority, typographic hierarchy, and anti-generic aesthetic guidelines.
-- **[docs/TEST_REPORT.md](file:///c:/Users/acer/Desktop/HCLTech-RIMS/docs/TEST_REPORT.md)** — Quality assurance audit and defect matrix with reproduction payloads and code fixes.
