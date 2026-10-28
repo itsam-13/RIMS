@@ -1,408 +1,27 @@
 import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { ActivatedRoute } from '@angular/router';
+import { FormsModule, ReactiveFormsModule, FormGroup, FormControl, FormArray, Validators } from '@angular/forms';
+import { ActivatedRoute, Router } from '@angular/router';
 import { InventoryApiService } from '../../services/inventory-api.service';
 import { ToastService } from '../../services/toast.service';
+import { AuthService } from '../../services/auth.service';
 import { PurchaseOrder, Supplier, Warehouse, Product, POStatus } from '../../models/inventory.models';
 import { forkJoin } from 'rxjs';
+import { StatusBadgeComponent } from '../../shared/status-badge/status-badge.component';
 
 @Component({
   selector: 'app-purchase-orders',
   standalone: true,
-  imports: [CommonModule, FormsModule],
-  template: `
-    <div class="po-page">
-      <!-- Header -->
-      <div class="page-header">
-        <div>
-          <div class="technical-label">SUPPLIER PROCUREMENT</div>
-          <h1 class="page-title">Purchase Orders & Inbound Receiving</h1>
-        </div>
-        <div class="header-actions">
-          <button class="btn btn-secondary btn-sm" (click)="loadData()" [disabled]="loading()">
-            <i class="ri-refresh-line" [class.ri-spin]="loading()"></i>
-            <span>SYNC</span>
-          </button>
-          <button class="btn btn-primary btn-sm" (click)="openCreateModal()">
-            <i class="ri-add-line"></i>
-            <span>ISSUE PURCHASE ORDER</span>
-          </button>
-        </div>
-      </div>
-
-      <!-- Filter Bar -->
-      <div class="filter-panel panel">
-        <div class="filter-grid">
-          <div>
-            <label class="form-label">FILTER BY STATUS</label>
-            <select class="form-select" [(ngModel)]="statusFilter">
-              <option value="ALL">ALL STATUSES ({{ purchaseOrders().length }})</option>
-              <option value="PENDING">PENDING</option>
-              <option value="ORDERED">ORDERED (INBOUND TRANSIT)</option>
-              <option value="RECEIVED">RECEIVED (IN STOCK)</option>
-              <option value="CANCELLED">CANCELLED</option>
-            </select>
-          </div>
-          <div>
-            <label class="form-label">DESTINATION WAREHOUSE</label>
-            <select class="form-select" [(ngModel)]="warehouseFilter">
-              <option [ngValue]="null">ALL DESTINATIONS</option>
-              <option *ngFor="let w of warehouses()" [ngValue]="w.id">{{ w.name }}</option>
-            </select>
-          </div>
-        </div>
-      </div>
-
-      <!-- PO Table -->
-      <div class="table-container">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>PO #</th>
-              <th>ORDER DATE</th>
-              <th>SUPPLIER</th>
-              <th>DESTINATION HUB</th>
-              <th>ITEMS</th>
-              <th>ESTIMATED TOTAL</th>
-              <th>STATUS</th>
-              <th style="text-align: right;">PROCUREMENT ACTIONS</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngIf="filteredPOs().length === 0">
-              <td colspan="8" class="empty-state">
-                <i class="ri-truck-line"></i>
-                <div>No purchase orders found.</div>
-              </td>
-            </tr>
-            <tr *ngFor="let po of filteredPOs()">
-              <td class="mono font-bold" style="color: var(--accent-primary);">PO-{{ po.id }}</td>
-              <td class="mono" style="font-size: 0.78rem;">{{ po.orderDate | slice:0:19 }}</td>
-              <td>
-                <div style="font-weight: 600;">{{ po.supplier?.name || 'Supplier #' + po.supplierId }}</div>
-                <div class="text-muted" style="font-size: 0.72rem;">{{ po.supplier?.contactEmail }}</div>
-              </td>
-              <td>
-                <div style="font-weight: 500;">{{ po.warehouse?.name || 'Warehouse #' + po.warehouseId }}</div>
-                <div class="text-muted" style="font-size: 0.72rem;">{{ po.warehouse?.location }}</div>
-              </td>
-              <td class="mono">
-                <button class="btn btn-ghost btn-sm" (click)="viewDetails(po)" style="font-family: var(--font-mono);">
-                  <i class="ri-file-list-3-line"></i> {{ po.items?.length || 0 }} item(s)
-                </button>
-              </td>
-              <td class="mono font-bold">
-                \${{ calculatePOTotal(po) | number:'1.2-2' }}
-              </td>
-              <td>
-                <span
-                  class="badge"
-                  [ngClass]="{
-                    'badge-neutral': po.status === 'PENDING',
-                    'badge-info': po.status === 'ORDERED',
-                    'badge-success': po.status === 'RECEIVED',
-                    'badge-danger': po.status === 'CANCELLED'
-                  }"
-                >
-                  <span class="badge-dot"></span>
-                  {{ po.status }}
-                </span>
-              </td>
-              <td style="text-align: right;">
-                <div class="action-btn-group">
-                  <!-- PENDING -> ORDERED -->
-                  <button
-                    *ngIf="po.status === 'PENDING'"
-                    class="btn btn-outline btn-sm"
-                    (click)="markOrdered(po)"
-                    title="Mark as Dispatched by Supplier"
-                  >
-                    <i class="ri-send-plane-line"></i> DISPATCH
-                  </button>
-
-                  <!-- ORDERED -> RECEIVED -->
-                  <button
-                    *ngIf="po.status === 'ORDERED'"
-                    class="btn btn-primary btn-sm"
-                    (click)="markReceived(po)"
-                    title="Receive shipment and increment warehouse stock"
-                  >
-                    <i class="ri-inbox-archive-line"></i> RECEIVE STOCK
-                  </button>
-
-                  <!-- CANCEL -->
-                  <button
-                    *ngIf="po.status === 'PENDING' || po.status === 'ORDERED'"
-                    class="btn btn-danger btn-sm"
-                    (click)="cancelPO(po)"
-                    title="Cancel Purchase Order"
-                  >
-                    <i class="ri-close-circle-line"></i>
-                  </button>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <!-- MODAL: ISSUE NEW PURCHASE ORDER -->
-      <div class="modal-backdrop" *ngIf="showCreateModal">
-        <div class="modal-dialog modal-lg">
-          <div class="modal-header">
-            <div>
-              <div class="technical-label">PROCUREMENT ORDER MANIFEST</div>
-              <div class="section-title">Issue Inbound Purchase Order</div>
-            </div>
-            <button class="btn btn-ghost btn-sm" (click)="showCreateModal = false">
-              <i class="ri-close-line"></i>
-            </button>
-          </div>
-          <div class="modal-body">
-            <div class="form-row-2">
-              <div class="form-group">
-                <label class="form-label">SUPPLIER</label>
-                <select class="form-select" [(ngModel)]="newPO.supplierId" required>
-                  <option [ngValue]="null" disabled>Choose vendor/supplier...</option>
-                  <option *ngFor="let s of suppliers()" [ngValue]="s.id">
-                    {{ s.name }} (Lead time: {{ s.leadTimeDays }}d)
-                  </option>
-                </select>
-              </div>
-
-              <div class="form-group">
-                <label class="form-label">DESTINATION RECEIVING WAREHOUSE</label>
-                <select class="form-select" [(ngModel)]="newPO.warehouseId" required>
-                  <option [ngValue]="null" disabled>Choose destination hub...</option>
-                  <option *ngFor="let w of warehouses()" [ngValue]="w.id">
-                    {{ w.name }} ({{ w.location }}) — Cap: {{ w.capacity }}
-                  </option>
-                </select>
-              </div>
-            </div>
-
-            <!-- Dynamic Line Items Section -->
-            <div class="items-header-bar">
-              <div class="technical-label">PURCHASE ORDER LINE ITEMS</div>
-              <button class="btn btn-secondary btn-sm" (click)="addLineItem()">
-                <i class="ri-add-line"></i> ADD ITEM
-              </button>
-            </div>
-
-            <div class="line-items-list">
-              <div *ngFor="let item of newPO.items; let idx = index" class="line-item-row">
-                <div class="item-select-col">
-                  <label class="form-label" *ngIf="idx === 0">PRODUCT / SKU</label>
-                  <select class="form-select" [(ngModel)]="item.productId" (change)="onProductSelect(item)">
-                    <option [ngValue]="null" disabled>Select product...</option>
-                    <option *ngFor="let p of products()" [ngValue]="p.id">
-                      [{{ p.sku }}] {{ p.name }}
-                    </option>
-                  </select>
-                </div>
-
-                <div class="item-qty-col">
-                  <label class="form-label" *ngIf="idx === 0">QUANTITY</label>
-                  <input
-                    type="number"
-                    class="form-control input-mono"
-                    [(ngModel)]="item.quantity"
-                    min="1"
-                    placeholder="Qty"
-                  />
-                </div>
-
-                <div class="item-cost-col">
-                  <label class="form-label" *ngIf="idx === 0">UNIT COST ($)</label>
-                  <input
-                    type="number"
-                    class="form-control input-mono"
-                    [(ngModel)]="item.unitCost"
-                    min="0"
-                    step="0.01"
-                    placeholder="Cost"
-                  />
-                </div>
-
-                <div class="item-subtotal-col">
-                  <label class="form-label" *ngIf="idx === 0">LINE TOTAL</label>
-                  <div class="mono line-total-val">\${{ (item.quantity * item.unitCost) | number:'1.2-2' }}</div>
-                </div>
-
-                <div class="item-remove-col">
-                  <label class="form-label" *ngIf="idx === 0">&nbsp;</label>
-                  <button
-                    class="btn btn-ghost btn-sm"
-                    (click)="removeItem(idx)"
-                    [disabled]="newPO.items.length === 1"
-                    style="color: var(--color-danger);"
-                  >
-                    <i class="ri-delete-bin-line"></i>
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <!-- Grand Total Bar -->
-            <div class="po-grand-total">
-              <span class="technical-label">ESTIMATED TOTAL ORDER VALUE:</span>
-              <span class="mono total-amount">\${{ calculateNewPOTotal() | number:'1.2-2' }}</span>
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button class="btn btn-outline" (click)="showCreateModal = false">CANCEL</button>
-            <button
-              class="btn btn-primary"
-              (click)="submitPurchaseOrder()"
-              [disabled]="!newPO.supplierId || !newPO.warehouseId || !isNewPOValid()"
-            >
-              TRANSMIT PURCHASE ORDER
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- MODAL: VIEW DETAILS -->
-      <div class="modal-backdrop" *ngIf="showDetailsModal && selectedPO">
-        <div class="modal-dialog">
-          <div class="modal-header">
-            <div>
-              <div class="technical-label">PO DETAILS // MANIFEST</div>
-              <div class="section-title">Purchase Order #{{ selectedPO.id }} ({{ selectedPO.status }})</div>
-            </div>
-            <button class="btn btn-ghost btn-sm" (click)="showDetailsModal = false">
-              <i class="ri-close-line"></i>
-            </button>
-          </div>
-          <div class="modal-body">
-            <div class="table-container">
-              <table class="data-table">
-                <thead>
-                  <tr>
-                    <th>ITEM</th>
-                    <th>QTY</th>
-                    <th>UNIT COST</th>
-                    <th>LINE TOTAL</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr *ngFor="let item of selectedPO.items">
-                    <td>
-                      <strong>{{ item.product?.name || 'Product #' + item.productId }}</strong>
-                      <div class="mono text-muted" style="font-size: 0.72rem;">{{ item.product?.sku }}</div>
-                    </td>
-                    <td class="mono font-bold">{{ item.quantity }}</td>
-                    <td class="mono">\${{ item.unitCost | number:'1.2-2' }}</td>
-                    <td class="mono font-bold">\${{ (item.quantity * item.unitCost) | number:'1.2-2' }}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button class="btn btn-secondary" (click)="showDetailsModal = false">CLOSE</button>
-          </div>
-        </div>
-      </div>
-    </div>
-  `,
-  styles: [`
-    .po-page {
-      display: flex;
-      flex-direction: column;
-      gap: 1.25rem;
-    }
-
-    .page-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      flex-wrap: wrap;
-      gap: 1rem;
-    }
-
-    .header-actions {
-      display: flex;
-      gap: 0.6rem;
-    }
-
-    .filter-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 1rem;
-    }
-
-    .form-row-2 {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 1rem;
-    }
-
-    .items-header-bar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin: 1.25rem 0 0.75rem;
-      padding-bottom: 0.5rem;
-      border-bottom: 1px solid var(--border-subtle);
-    }
-
-    .line-items-list {
-      display: flex;
-      flex-direction: column;
-      gap: 0.75rem;
-      max-height: 260px;
-      overflow-y: auto;
-      padding-right: 0.25rem;
-    }
-
-    .line-item-row {
-      display: flex;
-      gap: 0.6rem;
-      align-items: flex-end;
-    }
-
-    .item-select-col { flex: 2; }
-    .item-qty-col { width: 100px; }
-    .item-cost-col { width: 120px; }
-    .item-subtotal-col { width: 120px; }
-    .item-remove-col { width: 40px; }
-
-    .line-total-val {
-      padding: 0.6rem 0.2rem;
-      font-weight: 600;
-      color: var(--accent-primary);
-    }
-
-    .po-grand-total {
-      margin-top: 1.25rem;
-      padding: 0.85rem 1rem;
-      background-color: var(--bg-card);
-      border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-sm);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .total-amount {
-      font-size: 1.25rem;
-      font-weight: 700;
-      color: var(--color-success);
-    }
-
-    .action-btn-group {
-      display: flex;
-      justify-content: flex-end;
-      gap: 0.35rem;
-    }
-  `]
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, StatusBadgeComponent],
+  templateUrl: './purchase-orders.component.html',
+  styleUrl: './purchase-orders.component.css'
 })
 export class PurchaseOrdersComponent implements OnInit {
   private api = inject(InventoryApiService);
   private toast = inject(ToastService);
   private route = inject(ActivatedRoute);
+  private router = inject(Router);
+  public authService = inject(AuthService);
 
   loading = signal<boolean>(false);
   purchaseOrders = signal<PurchaseOrder[]>([]);
@@ -414,17 +33,17 @@ export class PurchaseOrdersComponent implements OnInit {
   warehouseFilter: number | null = null;
 
   showCreateModal = false;
-  newPO = {
-    supplierId: null as number | null,
-    warehouseId: null as number | null,
-    status: 'PENDING' as POStatus,
-    items: [
-      { productId: null as number | null, quantity: 10, unitCost: 50.00 }
-    ]
-  };
+
+  poForm = new FormGroup({
+    supplierId: new FormControl<number | null>(null, [Validators.required]),
+    warehouseId: new FormControl<number | null>(null, [Validators.required]),
+    items: new FormArray<FormGroup>([])
+  });
 
   showDetailsModal = false;
   selectedPO: PurchaseOrder | null = null;
+  private dataLoaded = false;
+  private pendingCreateRequest: { productId?: number } | null = null;
 
   filteredPOs = computed(() => {
     let list = this.purchaseOrders();
@@ -438,13 +57,16 @@ export class PurchaseOrdersComponent implements OnInit {
   });
 
   ngOnInit() {
-    this.loadData();
     this.route.queryParams.subscribe(params => {
       if (params['reorderProductId']) {
         const prodId = Number(params['reorderProductId']);
-        setTimeout(() => this.openCreateModal(prodId), 500);
+        this.pendingCreateRequest = { productId: prodId };
+      } else if (params['create'] === 'true') {
+        this.pendingCreateRequest = {};
       }
+      this.openRequestedCreateModal();
     });
+    this.loadData();
   }
 
   loadData() {
@@ -461,6 +83,8 @@ export class PurchaseOrdersComponent implements OnInit {
         this.warehouses.set(res.warehouses || []);
         this.products.set(res.products || []);
         this.loading.set(false);
+        this.dataLoaded = true;
+        this.openRequestedCreateModal();
       },
       error: () => {
         this.loading.set(false);
@@ -469,13 +93,35 @@ export class PurchaseOrdersComponent implements OnInit {
     });
   }
 
+  private openRequestedCreateModal() {
+    if (!this.dataLoaded || !this.pendingCreateRequest) return;
+    const request = this.pendingCreateRequest;
+    this.pendingCreateRequest = null;
+    this.openCreateModal(request.productId);
+  }
+
   calculatePOTotal(po: PurchaseOrder): number {
     if (!po.items) return 0;
     return po.items.reduce((acc, curr) => acc + (curr.quantity * curr.unitCost), 0);
   }
 
+  get poItems(): FormArray<FormGroup> {
+    return this.poForm.get('items') as FormArray<FormGroup>;
+  }
+
+  createPOItem(productId: number | null = null, quantity = 20, unitCost = 50): FormGroup {
+    return new FormGroup({
+      productId: new FormControl<number | null>(productId, { validators: [Validators.required] }),
+      quantity: new FormControl<number>(quantity, { nonNullable: true, validators: [Validators.required, Validators.min(1)] }),
+      unitCost: new FormControl<number>(unitCost, { nonNullable: true, validators: [Validators.required, Validators.min(0)] })
+    });
+  }
+
   calculateNewPOTotal(): number {
-    return this.newPO.items.reduce((acc, item) => acc + (item.quantity * item.unitCost), 0);
+    return this.poItems.controls.reduce((acc, ctrl) => {
+      const val = ctrl.value;
+      return acc + ((val.quantity || 0) * (val.unitCost || 0));
+    }, 0);
   }
 
   openCreateModal(preselectedProductId?: number) {
@@ -486,57 +132,82 @@ export class PurchaseOrdersComponent implements OnInit {
       ? (this.products().find(p => p.id === preselectedProductId)?.price || 50)
       : 50;
 
-    this.newPO = {
+    this.poForm.reset({
       supplierId: sId,
-      warehouseId: wId,
-      status: 'PENDING',
-      items: [
-        { productId: pId, quantity: 20, unitCost: cost }
-      ]
-    };
+      warehouseId: wId
+    });
+    this.poItems.clear();
+    this.poItems.push(this.createPOItem(pId, 20, cost));
     this.showCreateModal = true;
+  }
+
+  closeCreateModal() {
+    this.showCreateModal = false;
+    const params = this.route.snapshot.queryParamMap;
+    if (!params.has('create') && !params.has('reorderProductId')) return;
+
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { create: null, reorderProductId: null },
+      queryParamsHandling: 'merge',
+      replaceUrl: true
+    });
   }
 
   addLineItem() {
     const pId = this.products().length > 0 ? this.products()[0].id : null;
-    this.newPO.items.push({ productId: pId, quantity: 10, unitCost: 25 });
+    this.poItems.push(this.createPOItem(pId, 10, 25));
   }
 
   removeItem(idx: number) {
-    if (this.newPO.items.length > 1) {
-      this.newPO.items.splice(idx, 1);
+    if (this.poItems.length > 1) {
+      this.poItems.removeAt(idx);
     }
   }
 
-  onProductSelect(item: any) {
-    const found = this.products().find(p => p.id === item.productId);
+  onProductSelect(idx: number) {
+    const ctrl = this.poItems.at(idx);
+    if (!ctrl) return;
+    const pId = ctrl.get('productId')?.value;
+    const found = this.products().find(p => p.id === pId);
     if (found) {
-      item.unitCost = found.price || 50;
+      ctrl.patchValue({ unitCost: found.price || 50 });
     }
   }
 
   isNewPOValid(): boolean {
-    return this.newPO.items.every(item => item.productId && item.quantity > 0 && item.unitCost >= 0);
+    if (this.poForm.invalid || this.poItems.length === 0) return false;
+    return this.poItems.controls.every(ctrl => {
+      const val = ctrl.value;
+      return !!val.productId && (val.quantity || 0) > 0 && (val.unitCost || 0) >= 0;
+    });
   }
 
   submitPurchaseOrder() {
-    if (!this.newPO.supplierId || !this.newPO.warehouseId || !this.isNewPOValid()) return;
+    if (!this.isNewPOValid()) {
+      this.toast.error('Please complete all required fields and verify item quantities.');
+      return;
+    }
 
+    const formVal = this.poForm.getRawValue();
     const payload = {
-      supplierId: this.newPO.supplierId,
-      warehouseId: this.newPO.warehouseId,
-      status: 'PENDING',
-      items: this.newPO.items.map(it => ({
-        productId: it.productId,
-        quantity: it.quantity,
-        unitCost: it.unitCost
-      }))
+      supplierId: formVal.supplierId!,
+      warehouseId: formVal.warehouseId!,
+      status: 'PENDING' as POStatus,
+      items: this.poItems.controls.map(ctrl => {
+        const val = ctrl.value;
+        return {
+          productId: val.productId as number,
+          quantity: val.quantity as number,
+          unitCost: val.unitCost as number
+        };
+      })
     };
 
     this.api.createPurchaseOrder(payload).subscribe({
       next: (po) => {
         this.toast.success(`Purchase Order PO-${po.id} issued successfully.`);
-        this.showCreateModal = false;
+        this.closeCreateModal();
         this.loadData();
       },
       error: (err) => {

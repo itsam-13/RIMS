@@ -1,0 +1,108 @@
+.orders-page {
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    .page-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 0.6rem;
+    }
+
+    .filter-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+
+    .form-row-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+
+    .items-header-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin: 1.25rem 0 0.75rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .line-items-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.85rem;
+      max-height: 280px;
+      overflow-y: auto;
+      padding-right: 0.25rem;
+    }
+
+    .line-item-row {
+      display: flex;
+      gap: 0.6rem;
+      align-items: flex-end;
+    }
+
+    .item-select-col { flex: 2; }
+    .item-qty-col { width: 95px; }
+    .item-cost-col { width: 115px; }
+    .item-subtotal-col { width: 115px; }
+    .item-remove-col { width: 40px; }
+
+    .line-total-val {
+      padding: 0.6rem 0.2rem;
+      font-weight: 600;
+      color: var(--accent-primary);
+    }
+
+    .stock-check-line {
+      margin-top: 0.35rem;
+      font-size: 0.72rem;
+    }
+
+    .stock-badge {
+      font-family: var(--font-mono);
+      color: var(--color-success);
+    }
+    .stock-badge.shortage {
+      color: var(--color-danger);
+      font-weight: 600;
+    }
+    .shortage-text {
+      color: var(--color-danger);
+      font-weight: 700;
+      margin-left: 0.25rem;
+    }
+
+    .order-grand-total {
+      margin-top: 1.25rem;
+      padding: 0.85rem 1rem;
+      background-color: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .total-amount {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--color-success);
+    }
+
+    .action-btn-group {
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.35rem;
+    }

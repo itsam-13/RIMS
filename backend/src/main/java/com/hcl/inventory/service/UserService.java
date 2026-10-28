@@ -4,6 +4,7 @@ import com.hcl.inventory.model.User;
 import com.hcl.inventory.repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -40,6 +41,22 @@ public class UserService {
             throw new IllegalArgumentException("An account with email '" + user.getEmail() + "' already exists");
         }
 
+        // Enforce role security: public self-registration assigns SALES (or ADMIN if system has 0 users).
+        // Only an authenticated ADMIN can provision specific roles (WAREHOUSE_MANAGER, ADMIN).
+        var auth = SecurityContextHolder.getContext().getAuthentication();
+        boolean isAdmin = auth != null && auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+
+        if (!isAdmin) {
+            if (userRepository.count() == 0) {
+                user.setRole(User.Role.ADMIN);
+            } else {
+                user.setRole(User.Role.SALES);
+            }
+        } else if (user.getRole() == null) {
+            user.setRole(User.Role.SALES);
+        }
+
         user.setPassword(passwordEncoder.encode(user.getPassword()));
         return userRepository.save(user);
     }
@@ -60,7 +77,9 @@ public class UserService {
 
         existing.setUsername(updatedUser.getUsername());
         existing.setEmail(updatedUser.getEmail());
-        existing.setRole(updatedUser.getRole());
+        if (updatedUser.getRole() != null) {
+            existing.setRole(updatedUser.getRole());
+        }
 
         if (updatedUser.getPassword() != null && !updatedUser.getPassword().isBlank()) {
             existing.setPassword(passwordEncoder.encode(updatedUser.getPassword()));
@@ -76,7 +95,6 @@ public class UserService {
         userRepository.deleteById(id);
     }
 
-    // Will be used by the login endpoint once the security/JWT layer is built.
     public boolean checkPassword(User user, String rawPassword) {
         return passwordEncoder.matches(rawPassword, user.getPassword());
     }

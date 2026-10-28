@@ -42,5 +42,5 @@ public class User {
 
     @NotNull
     @Enumerated(EnumType.STRING)
-    private Role role;
+    private Role role = Role.SALES;
 }

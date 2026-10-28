@@ -1,0 +1,188 @@
+<div class="dashboard">
+      <header class="dashboard-header">
+        <div class="welcome-copy">
+          <p class="dashboard-date">{{ today | date: 'EEEE, MMMM d' }}</p>
+          <h1 class="display-title">{{ greeting }}, {{ authService.currentUser()?.username || 'there' }}</h1>
+          <p>Here is the latest across your inventory and orders.</p>
+        </div>
+        <div class="header-actions">
+          <button
+            type="button"
+            class="btn btn-secondary"
+            (click)="loadAllData()"
+            [disabled]="loading()"
+            [attr.aria-label]="loading() ? 'Refreshing overview' : 'Refresh overview'"
+          >
+            <i class="ri-refresh-line" [class.ri-spin]="loading()" aria-hidden="true"></i>
+            <span>{{ loading() ? 'Refreshing' : 'Refresh' }}</span>
+          </button>
+          <a routerLink="/purchase-orders" [queryParams]="{ create: true }" class="btn btn-primary">
+            <i class="ri-add-line" aria-hidden="true"></i>
+            <span>New purchase order</span>
+          </a>
+        </div>
+      </header>
+
+      <div *ngIf="error()" class="dashboard-error" role="alert">
+        <i class="ri-error-warning-line" aria-hidden="true"></i>
+        <span>{{ error() }}</span>
+        <button type="button" class="error-retry" (click)="loadAllData()">Try again</button>
+      </div>
+
+      <section class="summary" aria-label="Inventory and order summary">
+        <a routerLink="/inventory" class="summary-item">
+          <span class="summary-icon" aria-hidden="true"><i class="ri-stack-line"></i></span>
+          <span class="summary-label">Units in stock</span>
+          <strong *ngIf="!loading() || inventory().length" class="summary-value">{{ totalUnits() | number }}</strong>
+          <span *ngIf="loading() && !inventory().length" class="summary-skeleton" aria-label="Loading"></span>
+        </a>
+        <a routerLink="/products" class="summary-item">
+          <span class="summary-icon" aria-hidden="true"><i class="ri-box-3-line"></i></span>
+          <span class="summary-label">Products</span>
+          <strong *ngIf="!loading() || products().length" class="summary-value">{{ products().length | number }}</strong>
+          <span *ngIf="loading() && !products().length" class="summary-skeleton" aria-label="Loading"></span>
+        </a>
+        <a routerLink="/inventory" class="summary-item" [class.summary-attention]="lowStockProducts().length > 0">
+          <span class="summary-icon" aria-hidden="true"><i class="ri-alarm-warning-line"></i></span>
+          <span class="summary-label">Below reorder level</span>
+          <strong *ngIf="!loading() || products().length" class="summary-value">{{ lowStockProducts().length | number }}</strong>
+          <span *ngIf="loading() && !products().length" class="summary-skeleton" aria-label="Loading"></span>
+        </a>
+        <a routerLink="/purchase-orders" class="summary-item">
+          <span class="summary-icon" aria-hidden="true"><i class="ri-truck-line"></i></span>
+          <span class="summary-label">Open purchase orders</span>
+          <strong *ngIf="!loading() || purchaseOrders().length" class="summary-value">{{ openPurchaseOrders().length | number }}</strong>
+          <span *ngIf="loading() && !purchaseOrders().length" class="summary-skeleton" aria-label="Loading"></span>
+        </a>
+      </section>
+
+      <div class="dashboard-columns">
+        <section class="overview-section inventory-section" aria-labelledby="inventory-heading">
+          <div class="section-heading">
+            <div>
+              <h2 id="inventory-heading">Inventory to review</h2>
+              <p>Products at or below their reorder level.</p>
+            </div>
+            <a routerLink="/inventory" class="text-link">
+              All inventory <i class="ri-arrow-right-line" aria-hidden="true"></i>
+            </a>
+          </div>
+
+          <div *ngIf="loading() && !products().length" class="loading-list" aria-label="Loading inventory">
+            <span *ngFor="let row of loadingRows" class="skeleton-row"></span>
+          </div>
+
+          <div *ngIf="!loading() && !error() && lowStockProducts().length === 0" class="empty-message">
+            <i class="ri-checkbox-circle-line" aria-hidden="true"></i>
+            <div>
+              <strong>Stock levels look good</strong>
+              <p>No products are below their reorder level.</p>
+            </div>
+          </div>
+
+          <div *ngIf="lowStockProducts().length > 0" class="table-container overview-table">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th scope="col">Product</th>
+                  <th scope="col">SKU</th>
+                  <th scope="col">In stock</th>
+                  <th scope="col">Reorder at</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let product of lowStockProducts()">
+                  <td class="product-name">{{ product.name }}</td>
+                  <td class="mono">{{ product.sku }}</td>
+                  <td>
+                    <span class="stock-count" [class.stock-depleted]="product.totalStock === 0">
+                      {{ product.totalStock | number }}
+                    </span>
+                  </td>
+                  <td>{{ product.reorderLevel | number }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <div class="side-sections">
+          <section class="overview-section" aria-labelledby="orders-heading">
+            <div class="section-heading">
+              <div>
+                <h2 id="orders-heading">Purchase orders</h2>
+                <p>Orders awaiting receipt or dispatch.</p>
+              </div>
+              <a routerLink="/purchase-orders" class="text-link" aria-label="View all purchase orders">
+                View all <i class="ri-arrow-right-line" aria-hidden="true"></i>
+              </a>
+            </div>
+
+            <div *ngIf="loading() && !purchaseOrders().length" class="loading-list" aria-label="Loading purchase orders">
+              <span *ngFor="let row of loadingRows.slice(0, 3)" class="skeleton-row"></span>
+            </div>
+
+            <div *ngIf="!loading() && !error() && openPurchaseOrders().length === 0" class="empty-message compact-empty">
+              <i class="ri-inbox-line" aria-hidden="true"></i>
+              <div>
+                <strong>No open orders</strong>
+                <p>New purchase orders will appear here.</p>
+              </div>
+            </div>
+
+            <a
+              *ngFor="let order of openPurchaseOrders().slice(0, 4)"
+              routerLink="/purchase-orders"
+              class="order-row"
+            >
+              <span class="order-reference">PO-{{ order.id }}</span>
+              <span class="order-supplier">{{ order.supplier?.name || 'Supplier not assigned' }}</span>
+              <span class="order-status">{{ order.status | titlecase }}</span>
+              <i class="ri-arrow-right-s-line" aria-hidden="true"></i>
+            </a>
+          </section>
+
+          <section class="overview-section activity-section" aria-labelledby="activity-heading">
+            <div class="section-heading">
+              <div>
+                <h2 id="activity-heading">Recent stock activity</h2>
+                <p>Latest recorded inventory movements.</p>
+              </div>
+              <a routerLink="/stock-movements" class="text-link" aria-label="View all stock movements">
+                View all <i class="ri-arrow-right-line" aria-hidden="true"></i>
+              </a>
+            </div>
+
+            <div *ngIf="loading() && !movements().length" class="loading-list" aria-label="Loading stock activity">
+              <span *ngFor="let row of loadingRows.slice(0, 3)" class="skeleton-row"></span>
+            </div>
+
+            <div *ngIf="!loading() && !error() && movements().length === 0" class="empty-message compact-empty">
+              <i class="ri-time-line" aria-hidden="true"></i>
+              <div>
+                <strong>No stock activity yet</strong>
+                <p>Inventory movements will appear here.</p>
+              </div>
+            </div>
+
+            <a *ngFor="let movement of movements().slice(0, 4)" routerLink="/stock-movements" class="movement-row">
+              <span class="movement-icon" [class.movement-out]="movement.type === 'OUT'">
+                <i
+                  [class]="movement.type === 'IN' ? 'ri-arrow-down-line' : movement.type === 'OUT' ? 'ri-arrow-up-line' : 'ri-arrow-left-right-line'"
+                  aria-hidden="true"
+                ></i>
+              </span>
+              <span class="movement-copy">
+                <strong>{{ movement.product?.name || 'Product' }}</strong>
+                <span>{{ movement.type | titlecase }} <ng-container *ngIf="movement.timestamp">· {{ movement.timestamp | date: 'MMM d, h:mm a' }}</ng-container></span>
+              </span>
+              <span class="movement-quantity">{{ movement.quantity | number }}</span>
+            </a>
+          </section>
+        </div>
+      </div>
+
+      <p *ngIf="lastUpdated() && !loading()" class="last-updated">
+        Updated {{ lastUpdated() | date: 'shortTime' }}
+      </p>
+    </div>

@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { InventoryApiService } from '../../services/inventory-api.service';
 import { ToastService } from '../../services/toast.service';
+import { AuthService } from '../../services/auth.service';
 import { StockMovement, Product, Warehouse, MovementType } from '../../models/inventory.models';
 import { forkJoin } from 'rxjs';
 
@@ -23,7 +24,7 @@ import { forkJoin } from 'rxjs';
             <i class="ri-refresh-line" [class.ri-spin]="loading()"></i>
             <span>SYNC</span>
           </button>
-          <button class="btn btn-primary btn-sm" (click)="openTransferModal()">
+          <button *ngIf="authService.isWarehouseManager()" class="btn btn-primary btn-sm" (click)="openTransferModal()">
             <i class="ri-arrow-left-right-line"></i>
             <span>RECORD STOCK TRANSFER / MOVEMENT</span>
           </button>
@@ -223,6 +224,7 @@ import { forkJoin } from 'rxjs';
 export class StockMovementsComponent implements OnInit {
   private api = inject(InventoryApiService);
   private toast = inject(ToastService);
+  public authService = inject(AuthService);
 
   loading = signal<boolean>(false);
   movements = signal<StockMovement[]>([]);

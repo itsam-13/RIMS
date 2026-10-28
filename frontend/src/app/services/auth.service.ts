@@ -1,7 +1,7 @@
 import { Injectable, signal, computed } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { Observable, tap } from 'rxjs';
+import { map, Observable } from 'rxjs';
 import { AuthResponse, User, UserRole } from '../models/inventory.models';
 
 const TOKEN_KEY = 'rims_auth_token';
@@ -43,14 +43,21 @@ export class AuthService {
 
   login(credentials: { username: string; password: string }): Observable<AuthResponse> {
     return this.http.post<AuthResponse>('/api/auth/login', credentials).pipe(
-      tap(response => {
-        if (response && response.token) {
-          localStorage.setItem(TOKEN_KEY, response.token);
-          const userData = { username: response.username, role: response.role };
-          localStorage.setItem(USER_KEY, JSON.stringify(userData));
-          this.tokenSignal.set(response.token);
-          this.currentUserSignal.set(userData);
+      map(response => {
+        const token = response?.token?.trim();
+        if (!token) {
+          throw new Error('The sign-in response did not include an authentication token.');
         }
+
+        const username = response.username?.trim() || credentials.username.trim();
+        const userData = { username, role: response.role };
+
+        localStorage.setItem(TOKEN_KEY, token);
+        localStorage.setItem(USER_KEY, JSON.stringify(userData));
+        this.tokenSignal.set(token);
+        this.currentUserSignal.set(userData);
+
+        return { ...response, token, username };
       })
     );
   }

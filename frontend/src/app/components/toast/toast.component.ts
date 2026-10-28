@@ -7,11 +7,12 @@ import { ToastService } from '../../services/toast.service';
   standalone: true,
   imports: [CommonModule],
   template: `
-    <div class="toast-container" *ngIf="toastService.toasts().length > 0">
+    <div class="toast-container" aria-live="polite" aria-relevant="additions text" aria-atomic="false">
       <div
         *ngFor="let toast of toastService.toasts()"
         class="toast"
         [ngClass]="'toast-' + toast.type"
+        [attr.role]="toast.type === 'error' ? 'alert' : 'status'"
       >
         <i
           [class]="
@@ -33,6 +34,7 @@ import { ToastService } from '../../services/toast.service';
               : 'var(--color-info)'
           "
           style="font-size: 1.25rem; margin-top: 1px;"
+          aria-hidden="true"
         ></i>
         <div style="flex: 1;">
           <div *ngIf="toast.title" style="font-weight: 600; font-size: 0.82rem; margin-bottom: 2px;">
@@ -47,8 +49,9 @@ import { ToastService } from '../../services/toast.service';
           (click)="toastService.remove(toast.id)"
           class="btn btn-ghost btn-sm"
           style="padding: 2px 6px; color: var(--text-muted);"
+          aria-label="Dismiss notification"
         >
-          <i class="ri-close-line"></i>
+          <i class="ri-close-line" aria-hidden="true"></i>
         </button>
       </div>
     </div>

@@ -1,0 +1,196 @@
+<div class="landing-page">
+  <!-- =========================================================================
+       1. Translucent Frosted Navbar (Clean, Light Mode Alabaster & Deep Red)
+       ========================================================================= -->
+  <header class="landing-header">
+    <div class="nav-container">
+      <a routerLink="/" class="nav-brand" aria-label="RIMS Home">
+        <img src="/rims-mark.svg" class="brand-logo" alt="" />
+        <span class="brand-title">RIMS</span>
+        <span class="brand-badge">ENTERPRISE</span>
+      </a>
+
+      <!-- Clean Navigation Links -->
+      <nav class="nav-links" aria-label="Main Navigation">
+        <a [routerLink]="authService.isAuthenticated() ? '/dashboard' : '/login'" class="nav-link">Overview</a>
+        <a [routerLink]="authService.isAuthenticated() ? '/inventory' : '/login'" class="nav-link">Inventory</a>
+        <a [routerLink]="authService.isAuthenticated() ? '/warehouses' : '/login'" class="nav-link">Warehouses</a>
+        <a [routerLink]="authService.isAuthenticated() ? '/customer-orders' : '/login'" class="nav-link">Orders</a>
+      </nav>
+
+      <!-- Action Buttons -->
+      <div class="nav-actions">
+        <a *ngIf="!authService.isAuthenticated()" routerLink="/login" class="nav-action-link">Sign In</a>
+        <a
+          [routerLink]="authService.isAuthenticated() ? '/dashboard' : '/login'"
+          class="btn-primary-pill"
+        >
+          <span>{{ authService.isAuthenticated() ? 'Open Console' : 'Launch Console' }}</span>
+          <i class="ri-arrow-right-line" aria-hidden="true"></i>
+        </a>
+        <button
+          type="button"
+          class="mobile-toggle"
+          [attr.aria-expanded]="mobileNavOpen()"
+          (click)="toggleMobileNav()"
+          aria-label="Toggle navigation"
+        >
+          <i [class]="mobileNavOpen() ? 'ri-close-line' : 'ri-menu-line'"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Mobile Drawer -->
+    <div *ngIf="mobileNavOpen()" class="mobile-drawer" role="dialog" aria-modal="true">
+      <nav class="mobile-drawer-nav">
+        <a
+          [routerLink]="authService.isAuthenticated() ? '/dashboard' : '/login'"
+          (click)="closeMobileNav()"
+          class="mobile-nav-link"
+        >
+          Overview
+        </a>
+        <a
+          [routerLink]="authService.isAuthenticated() ? '/inventory' : '/login'"
+          (click)="closeMobileNav()"
+          class="mobile-nav-link"
+        >
+          Inventory
+        </a>
+        <a
+          [routerLink]="authService.isAuthenticated() ? '/warehouses' : '/login'"
+          (click)="closeMobileNav()"
+          class="mobile-nav-link"
+        >
+          Warehouses
+        </a>
+        <a
+          [routerLink]="authService.isAuthenticated() ? '/customer-orders' : '/login'"
+          (click)="closeMobileNav()"
+          class="mobile-nav-link"
+        >
+          Orders
+        </a>
+        <div class="mobile-drawer-footer">
+          <a
+            *ngIf="!authService.isAuthenticated()"
+            routerLink="/login"
+            (click)="closeMobileNav()"
+            class="mobile-btn-secondary"
+          >
+            Sign In
+          </a>
+          <a
+            [routerLink]="authService.isAuthenticated() ? '/dashboard' : '/login'"
+            (click)="closeMobileNav()"
+            class="mobile-btn-primary"
+          >
+            {{ authService.isAuthenticated() ? 'Open Console' : 'Launch Console' }}
+          </a>
+        </div>
+      </nav>
+    </div>
+  </header>
+
+  <!-- =========================================================================
+       2. Hero Section (Alabaster + Deep Red, Orbitron & 3D Fluid Sculpture)
+       ========================================================================= -->
+  <main class="hero-section">
+    <div class="hero-container">
+      <!-- Hero Left Column -->
+      <div class="hero-copy">
+        <div class="hero-eyebrow">
+          <span class="pulse-indicator" aria-hidden="true"></span>
+          <span class="eyebrow-text">NEXT-GEN RETAIL LOGISTICS ARCHITECTURE</span>
+        </div>
+
+        <div class="hero-heading-block">
+          <p class="hero-prefix">WE ARE</p>
+          <h1 class="hero-title">RIMS</h1>
+          <p class="hero-subtitle">PRECISION INVENTORY</p>
+        </div>
+
+        <p class="hero-description">
+          In the dynamic landscape of modern enterprise retail, orchestrating multi-node
+          warehouses and eliminating stock drift requires real-time telemetry, automated
+          replenishment triggers, and mathematical precision.
+        </p>
+
+        <!-- Interactive Dual Pill Button Group -->
+        <div class="hero-cta-group">
+          <a
+            [routerLink]="authService.isAuthenticated() ? '/dashboard' : '/login'"
+            class="dual-pill-button"
+            [attr.aria-label]="authService.isAuthenticated() ? 'Go to Dashboard' : 'Launch Console'"
+          >
+            <span class="dual-pill-action">{{ authService.isAuthenticated() ? 'GO TO DASHBOARD' : 'LAUNCH CONSOLE' }}</span>
+            <span class="dual-pill-icon" aria-hidden="true">
+              <i class="ri-arrow-right-up-line"></i>
+            </span>
+          </a>
+
+          <a
+            *ngIf="!authService.isAuthenticated()"
+            routerLink="/register"
+            class="btn-outline-explore"
+            title="Create an account"
+          >
+            <span>CREATE ACCOUNT</span>
+            <i class="ri-arrow-right-line" aria-hidden="true"></i>
+          </a>
+        </div>
+      </div>
+
+      <!-- Hero Right Column (3D Fluid Sculpture - 100% Background Free, Frameless & Floating) -->
+      <div class="hero-visual-column">
+        <div
+          class="hero-art-viewport"
+          (mousemove)="onArtMouseMove($event)"
+          (mouseleave)="resetArtTilt()"
+          role="region"
+          aria-label="Interactive 3D Fluid Sculpture"
+        >
+          <!-- Soft Atmospheric Halo (Zero Card Box, Pure Fluid Ambiance) -->
+          <div class="sculpture-ambient-halo" aria-hidden="true"></div>
+
+          <!-- 3D Interactive Stage with Perspective Tilt & Floating Levitation -->
+          <div
+            class="hero-art-stage"
+            [style.transform]="'perspective(1200px) rotateX(' + tiltX() + 'deg) rotateY(' + tiltY() + 'deg)'"
+          >
+            <img
+              src="/rims-fluid-sculpture.png"
+              alt="3D Ruby Glass Fluid Sculpture"
+              class="hero-fluid-sculpture floating-sculpture"
+            />
+            <!-- Ambient Floor Shadow -->
+            <div class="sculpture-floor-shadow" aria-hidden="true"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Hero Bottom Bar (Symmetrical Protocol & SLA Bar - Single Viewport) -->
+    <div class="hero-bottom-bar">
+      <div class="bottom-bar-container">
+        <!-- Compliance & Protocol Badges -->
+        <div class="protocol-badges">
+          <span class="protocol-item">
+            <i class="ri-shield-keyhole-line" aria-hidden="true"></i>
+            <span>SOC2 TYPE II</span>
+          </span>
+          <span class="protocol-divider">/</span>
+          <span class="protocol-item">
+            <i class="ri-lock-line" aria-hidden="true"></i>
+            <span>ISO 27001</span>
+          </span>
+          <span class="protocol-divider">/</span>
+          <span class="protocol-item">
+            <i class="ri-server-line" aria-hidden="true"></i>
+            <span>99.99% SLA</span>
+          </span>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>

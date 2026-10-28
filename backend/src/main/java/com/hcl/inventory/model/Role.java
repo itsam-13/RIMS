@@ -1,6 +1,7 @@
 package com.hcl.inventory.model;
 
 public enum Role {
-    USER,
-    ADMIN
+    ADMIN,
+    WAREHOUSE_MANAGER,
+    SALES
 }

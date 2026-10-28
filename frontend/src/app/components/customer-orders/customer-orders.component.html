@@ -1,0 +1,309 @@
+<div class="orders-page">
+      <!-- Header -->
+      <div class="page-header">
+        <div>
+          <div class="technical-label">OUTBOUND FULFILLMENT</div>
+          <h1 class="page-title">Customer Sales Orders & Dispatch</h1>
+        </div>
+        <div class="header-actions">
+          <button class="btn btn-secondary btn-sm" (click)="loadData()" [disabled]="loading()">
+            <i class="ri-refresh-line" [class.ri-spin]="loading()"></i>
+            <span>SYNC</span>
+          </button>
+          <button *ngIf="authService.isSales()" class="btn btn-primary btn-sm" (click)="openPlaceOrderModal()">
+            <i class="ri-add-line"></i>
+            <span>PLACE NEW SALES ORDER</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Filter Panel -->
+      <div class="filter-panel panel">
+        <div class="filter-grid">
+          <div>
+            <label class="form-label">FILTER BY STATUS</label>
+            <select class="form-select" [(ngModel)]="statusFilter">
+              <option value="ALL">ALL STATUSES ({{ customerOrders().length }})</option>
+              <option value="PLACED">PLACED (STOCK RESERVED)</option>
+              <option value="SHIPPED">SHIPPED (IN TRANSIT)</option>
+              <option value="DELIVERED">DELIVERED (FULFILLED)</option>
+              <option value="CANCELLED">CANCELLED (RESTOCKED)</option>
+            </select>
+          </div>
+          <div>
+            <label class="form-label">FULFILLMENT WAREHOUSE</label>
+            <select class="form-select" [(ngModel)]="warehouseFilter">
+              <option [ngValue]="null">ALL HUBS</option>
+              <option *ngFor="let w of warehouses()" [ngValue]="w.id">{{ w.name }}</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Customer Orders Table -->
+      <div class="table-container">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>ORDER #</th>
+              <th>ORDER DATE</th>
+              <th>CUSTOMER NAME</th>
+              <th>FULFILLMENT HUB</th>
+              <th>SALES OPERATOR</th>
+              <th>ITEMS</th>
+              <th>TOTAL VALUE</th>
+              <th>STATUS</th>
+              <th style="text-align: right;">FULFILLMENT DISPATCH</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngIf="filteredOrders().length === 0">
+              <td colspan="9" class="empty-state">
+                <i class="ri-shopping-cart-line"></i>
+                <div>No customer sales orders found.</div>
+              </td>
+            </tr>
+            <tr *ngFor="let ord of filteredOrders()">
+              <td class="mono font-bold" style="color: var(--accent-primary);">ORD-{{ ord.id }}</td>
+              <td class="mono" style="font-size: 0.78rem;">{{ ord.orderDate | slice:0:19 }}</td>
+              <td style="font-weight: 600;">{{ ord.customerName }}</td>
+              <td>
+                <div style="font-weight: 500;">{{ ord.warehouse?.name || 'Warehouse #' + ord.warehouseId }}</div>
+                <div class="text-muted" style="font-size: 0.72rem;">{{ ord.warehouse?.location }}</div>
+              </td>
+              <td>
+                <span class="badge badge-neutral">
+                  <i class="ri-user-line"></i> {{ ord.user?.username || 'System' }}
+                </span>
+              </td>
+              <td class="mono">
+                <button class="btn btn-ghost btn-sm" (click)="viewDetails(ord)" style="font-family: var(--font-mono);">
+                  <i class="ri-file-list-3-line"></i> {{ ord.items?.length || 0 }} item(s)
+                </button>
+              </td>
+              <td class="mono font-bold">
+                \${{ calculateOrderTotal(ord) | number:'1.2-2' }}
+              </td>
+              <td>
+                <app-status-badge [status]="ord.status"></app-status-badge>
+              </td>
+              <td style="text-align: right;">
+                <div class="action-btn-group">
+                  <!-- PLACED -> SHIPPED -->
+                  <button
+                    *ngIf="ord.status === 'PLACED'"
+                    class="btn btn-outline btn-sm"
+                    (click)="markShipped(ord)"
+                    title="Dispatch Shipment"
+                  >
+                    <i class="ri-truck-line"></i> SHIP
+                  </button>
+
+                  <!-- SHIPPED -> DELIVERED -->
+                  <button
+                    *ngIf="ord.status === 'SHIPPED'"
+                    class="btn btn-primary btn-sm"
+                    (click)="markDelivered(ord)"
+                    title="Confirm Delivery"
+                  >
+                    <i class="ri-checkbox-circle-line"></i> DELIVER
+                  </button>
+
+                  <!-- CANCEL -->
+                  <button
+                    *ngIf="ord.status === 'PLACED' || ord.status === 'SHIPPED'"
+                    class="btn btn-danger btn-sm"
+                    (click)="cancelOrder(ord)"
+                    title="Cancel Order & Restock Inventory"
+                  >
+                    <i class="ri-close-circle-line"></i> CANCEL
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- MODAL: PLACE CUSTOMER SALES ORDER -->
+      <div class="modal-backdrop" *ngIf="showPlaceOrderModal">
+        <div class="modal-dialog modal-lg">
+          <div class="modal-header">
+            <div>
+              <div class="technical-label">ORDER ENTRY // REAL-TIME STOCK VERIFICATION</div>
+              <div class="section-title">Place Customer Sales Order</div>
+            </div>
+            <button class="btn btn-ghost btn-sm" (click)="showPlaceOrderModal = false">
+              <i class="ri-close-line"></i>
+            </button>
+          </div>
+          <div class="modal-body" [formGroup]="orderForm">
+            <div class="form-row-2">
+              <div class="form-group">
+                <label class="form-label">CUSTOMER NAME / CLIENT ENTITY</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  formControlName="customerName"
+                  placeholder="e.g. Acme Retailers Inc."
+                  required
+                />
+                <div *ngIf="orderForm.get('customerName')?.invalid && orderForm.get('customerName')?.touched" style="color: #f87171; font-size: 0.76rem; margin-top: 4px;">
+                  Customer name is required (minimum 2 characters).
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">FULFILLMENT WAREHOUSE HUB</label>
+                <select class="form-select" formControlName="warehouseId" required>
+                  <option [ngValue]="null" disabled>Choose warehouse hub...</option>
+                  <option *ngFor="let w of warehouses()" [ngValue]="w.id">
+                    {{ w.name }} ({{ w.location }})
+                  </option>
+                </select>
+                <div *ngIf="orderForm.get('warehouseId')?.invalid && orderForm.get('warehouseId')?.touched" style="color: #f87171; font-size: 0.76rem; margin-top: 4px;">
+                  Fulfillment warehouse is required.
+                </div>
+              </div>
+            </div>
+
+            <!-- Dynamic Line Items Section -->
+            <div class="items-header-bar">
+              <div class="technical-label">REQUESTED LINE ITEMS</div>
+              <button class="btn btn-secondary btn-sm" type="button" (click)="addLineItem()">
+                <i class="ri-add-line" aria-hidden="true"></i> ADD ITEM
+              </button>
+            </div>
+
+            <div class="line-items-list" formArrayName="items">
+              <div *ngFor="let itemCtrl of orderItems.controls; let idx = index" [formGroupName]="idx" class="line-item-row">
+                <div class="item-select-col">
+                  <label class="form-label" *ngIf="idx === 0">PRODUCT / SKU</label>
+                  <select class="form-select" formControlName="productId" (change)="onProductSelect(idx)">
+                    <option [ngValue]="null" disabled>Select product...</option>
+                    <option *ngFor="let p of products()" [ngValue]="p.id">
+                      [{{ p.sku }}] {{ p.name }} (\${{ p.price }})
+                    </option>
+                  </select>
+                  <!-- Real-time stock status badge -->
+                  <div class="stock-check-line" *ngIf="orderForm.get('warehouseId')?.value && itemCtrl.get('productId')?.value">
+                    <span
+                      class="stock-badge"
+                      [class.shortage]="isItemStockInsufficient(idx)"
+                    >
+                      <i class="ri-archive-line" aria-hidden="true"></i>
+                      Available in hub: <strong>{{ getItemAvailableStock(idx) }}</strong> units
+                      <span *ngIf="isItemStockInsufficient(idx)" class="shortage-text">
+                        [INSUFFICIENT STOCK!]
+                      </span>
+                    </span>
+                  </div>
+                </div>
+
+                <div class="item-qty-col">
+                  <label class="form-label" *ngIf="idx === 0">QUANTITY</label>
+                  <input
+                    type="number"
+                    class="form-control input-mono"
+                    formControlName="quantity"
+                    min="1"
+                    placeholder="Qty"
+                  />
+                </div>
+
+                <div class="item-cost-col">
+                  <label class="form-label" *ngIf="idx === 0">UNIT PRICE ($)</label>
+                  <input
+                    type="number"
+                    class="form-control input-mono"
+                    formControlName="unitPrice"
+                    min="0"
+                    step="0.01"
+                    placeholder="Price"
+                  />
+                </div>
+
+                <div class="item-subtotal-col">
+                  <label class="form-label" *ngIf="idx === 0">SUBTOTAL</label>
+                  <div class="mono line-total-val">\${{ ((itemCtrl.get('quantity')?.value || 0) * (itemCtrl.get('unitPrice')?.value || 0)) | number:'1.2-2' }}</div>
+                </div>
+
+                <div class="item-remove-col">
+                  <label class="form-label" *ngIf="idx === 0">&nbsp;</label>
+                  <button
+                    type="button"
+                    class="btn btn-ghost btn-sm"
+                    (click)="removeItem(idx)"
+                    [disabled]="orderItems.length === 1"
+                    style="color: var(--color-danger);"
+                    aria-label="Remove item"
+                  >
+                    <i class="ri-delete-bin-line" aria-hidden="true"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Grand Total Bar -->
+            <div class="order-grand-total">
+              <span class="technical-label">ORDER TOTAL:</span>
+              <span class="mono total-amount">\${{ calculateNewOrderTotal() | number:'1.2-2' }}</span>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-outline" type="button" (click)="showPlaceOrderModal = false">CANCEL</button>
+            <button
+              class="btn btn-primary"
+              type="button"
+              (click)="submitCustomerOrder()"
+              [disabled]="!isNewOrderValid()"
+            >
+              CONFIRM & RESERVE STOCK
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- MODAL: VIEW DETAILS -->
+      <div class="modal-backdrop" *ngIf="showDetailsModal && selectedOrder">
+        <div class="modal-dialog">
+          <div class="modal-header">
+            <div>
+              <div class="technical-label">ORDER MANIFEST</div>
+              <div class="section-title">Customer Order #{{ selectedOrder.id }} ({{ selectedOrder.status }})</div>
+            </div>
+            <button class="btn btn-ghost btn-sm" (click)="showDetailsModal = false">
+              <i class="ri-close-line"></i>
+            </button>
+          </div>
+          <div class="modal-body">
+            <div class="table-container">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>ITEM</th>
+                    <th>QTY</th>
+                    <th>UNIT PRICE</th>
+                    <th>LINE TOTAL</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let item of selectedOrder.items">
+                    <td>
+                      <strong>{{ item.product?.name || 'Product #' + item.productId }}</strong>
+                      <div class="mono text-muted" style="font-size: 0.72rem;">{{ item.product?.sku }}</div>
+                    </td>
+                    <td class="mono font-bold">{{ item.quantity }}</td>
+                    <td class="mono">\${{ item.unitPrice | number:'1.2-2' }}</td>
+                    <td class="mono font-bold">\${{ (item.quantity * item.unitPrice) | number:'1.2-2' }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-secondary" (click)="showDetailsModal = false">CLOSE</button>
+          </div>
+        </div>
+      </div>
+    </div>

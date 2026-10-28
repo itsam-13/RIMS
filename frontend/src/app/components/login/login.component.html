@@ -1,0 +1,280 @@
+<div class="auth-page">
+  <!-- Minimalist Enterprise Top Bar -->
+  <header class="auth-topbar">
+    <a routerLink="/" class="auth-brand-badge" aria-label="Return to RIMS Home">
+      <img src="/rims-mark.svg" alt="" class="brand-badge-logo" />
+      <span class="brand-badge-title">RIMS</span>
+      <span class="brand-badge-tag">ENTERPRISE</span>
+    </a>
+    <a routerLink="/landing" class="back-home-link" aria-label="Go to RIMS Platform Landing">
+      <i class="ri-arrow-left-line" aria-hidden="true"></i>
+      <span>Back to Home</span>
+    </a>
+  </header>
+
+  <!-- Dual Sliding Auth Container -->
+  <main class="auth-main-wrapper">
+    <div
+      class="auth-card-container"
+      [class.right-panel-active]="isSignUpActive()"
+      role="region"
+      aria-label="Operator Authentication"
+    >
+      <!-- SIGN UP FORM (Revealed on the Right when right-panel-active) -->
+      <div
+        class="form-panel sign-up-container"
+        [attr.aria-hidden]="!isSignUpActive()"
+      >
+        <form (ngSubmit)="onRegister()" class="auth-form" autocomplete="on">
+          <h1 class="form-title">Create Account</h1>
+
+          <p class="form-instruction">Register as a new operator to access your workspace</p>
+
+          <!-- Username -->
+          <div class="input-field">
+            <i class="ri-user-line input-icon" aria-hidden="true"></i>
+            <input
+              id="reg-username"
+              type="text"
+              class="form-control"
+              [(ngModel)]="registerData.username"
+              name="regUsername"
+              autocomplete="username"
+              spellcheck="false"
+              placeholder="Username"
+              [tabindex]="isSignUpActive() ? 0 : -1"
+              required
+            />
+          </div>
+
+          <!-- Work Email -->
+          <div class="input-field">
+            <i class="ri-mail-line input-icon" aria-hidden="true"></i>
+            <input
+              id="reg-email"
+              type="email"
+              class="form-control"
+              [(ngModel)]="registerData.email"
+              name="regEmail"
+              autocomplete="email"
+              spellcheck="false"
+              placeholder="Work email"
+              [tabindex]="isSignUpActive() ? 0 : -1"
+              required
+            />
+          </div>
+
+          <!-- Password -->
+          <div class="input-field">
+            <i class="ri-lock-line input-icon" aria-hidden="true"></i>
+            <input
+              id="reg-password"
+              [type]="showPassword() ? 'text' : 'password'"
+              class="form-control"
+              [(ngModel)]="registerData.password"
+              name="regPassword"
+              autocomplete="new-password"
+              placeholder="Password (min 6 chars)"
+              minlength="6"
+              [tabindex]="isSignUpActive() ? 0 : -1"
+              required
+            />
+            <button
+              type="button"
+              class="password-toggle"
+              [attr.aria-label]="showPassword() ? 'Hide password' : 'Show password'"
+              [attr.aria-pressed]="showPassword()"
+              (click)="togglePassword()"
+              [tabindex]="isSignUpActive() ? 0 : -1"
+            >
+              <i [class]="showPassword() ? 'ri-eye-off-line' : 'ri-eye-line'" aria-hidden="true"></i>
+            </button>
+          </div>
+
+          <button
+            type="submit"
+            class="btn-auth-solid auth-submit"
+            [disabled]="loading()"
+            [tabindex]="isSignUpActive() ? 0 : -1"
+          >
+            <i class="ri-loader-4-line ri-spin" *ngIf="loading()" aria-hidden="true"></i>
+            <span>{{ loading() ? 'Creating account…' : 'Sign Up' }}</span>
+          </button>
+
+          <!-- Mobile Alternate Switch -->
+          <div class="mobile-switch">
+            <span>Already registered?</span>
+            <button type="button" class="switch-inline-link" (click)="switchToSignIn()">
+              Sign in
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- SIGN IN FORM (Visible on the Left when not right-panel-active) -->
+      <div
+        class="form-panel sign-in-container"
+        [attr.aria-hidden]="isSignUpActive()"
+      >
+        <form (ngSubmit)="onLogin()" class="auth-form" autocomplete="on">
+          <h1 class="form-title">Sign In</h1>
+
+          <p class="form-instruction">Enter your operator credentials to access your workspace</p>
+
+          <!-- Username -->
+          <div class="input-field">
+            <i class="ri-user-line input-icon" aria-hidden="true"></i>
+            <input
+              id="username"
+              type="text"
+              class="form-control"
+              [(ngModel)]="loginData.username"
+              name="username"
+              autocomplete="username"
+              spellcheck="false"
+              placeholder="Username or operator ID"
+              [tabindex]="!isSignUpActive() ? 0 : -1"
+              required
+            />
+          </div>
+
+          <!-- Password -->
+          <div class="input-field">
+            <i class="ri-lock-line input-icon" aria-hidden="true"></i>
+            <input
+              id="password"
+              [type]="showPassword() ? 'text' : 'password'"
+              class="form-control"
+              [(ngModel)]="loginData.password"
+              name="password"
+              autocomplete="current-password"
+              placeholder="Password"
+              [tabindex]="!isSignUpActive() ? 0 : -1"
+              required
+            />
+            <button
+              type="button"
+              class="password-toggle"
+              [attr.aria-label]="showPassword() ? 'Hide password' : 'Show password'"
+              [attr.aria-pressed]="showPassword()"
+              (click)="togglePassword()"
+              [tabindex]="!isSignUpActive() ? 0 : -1"
+            >
+              <i [class]="showPassword() ? 'ri-eye-off-line' : 'ri-eye-line'" aria-hidden="true"></i>
+            </button>
+          </div>
+
+          <div class="form-action-row">
+            <button
+              type="button"
+              class="forgot-link"
+              (click)="onForgotPassword($event)"
+              [tabindex]="!isSignUpActive() ? 0 : -1"
+            >
+              Forget Password?
+            </button>
+          </div>
+
+          <button
+            type="submit"
+            class="btn-auth-solid auth-submit"
+            [disabled]="loading()"
+            [tabindex]="!isSignUpActive() ? 0 : -1"
+          >
+            <i class="ri-loader-4-line ri-spin" *ngIf="loading()" aria-hidden="true"></i>
+            <span>{{ loading() ? 'Signing in…' : 'Sign In' }}</span>
+          </button>
+
+          <!-- Hidden router link for fallback compatibility -->
+          <div class="auth-switch visually-hidden">
+            <span>Don't have an account?</span>
+            <a routerLink="/register" class="auth-link">Sign up / Register</a>
+          </div>
+
+          <!-- Mobile Alternate Switch -->
+          <div class="mobile-switch">
+            <span>New to RIMS?</span>
+            <button type="button" class="switch-inline-link" (click)="switchToSignUp()">
+              Sign up
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- SLIDING OVERLAY CONTAINER (Deep Red sliding banner with 3D artworks) -->
+      <div class="overlay-container">
+        <div class="overlay">
+          <!-- OVERLAY LEFT: Visible when Sign Up is active (contains 1st Image: auth-register-art.png) -->
+          <div class="overlay-panel overlay-left">
+            <div class="art-ambient-stage">
+              <div class="art-ambient-halo"></div>
+              <img
+                src="/auth-register-art.png"
+                alt="RIMS Operator Onboarding"
+                class="auth-art-image floating-register-art"
+              />
+              <div class="art-floor-shadow"></div>
+            </div>
+
+            <h2 class="overlay-title">Welcome to RIMS</h2>
+            <p class="overlay-desc">
+              To keep connected with your inventory operations and multi-node warehouse mesh, please sign in with your operator ID.
+            </p>
+            <button
+              type="button"
+              class="btn-auth-ghost"
+              (click)="switchToSignIn()"
+              aria-label="Switch to Sign In"
+            >
+              SIGN IN
+            </button>
+          </div>
+
+          <!-- OVERLAY RIGHT: Visible when Sign In is active (contains 2nd Image: auth-login-art.png) -->
+          <div class="overlay-panel overlay-right">
+            <div class="art-ambient-stage">
+              <div class="art-ambient-halo"></div>
+              <img
+                src="/auth-login-art.png"
+                alt="RIMS Warehouse Operations"
+                class="auth-art-image floating-login-art"
+              />
+              <div class="art-floor-shadow"></div>
+            </div>
+
+            <h2 class="overlay-title">New to RIMS?</h2>
+            <p class="overlay-desc">
+              Sign up now and experience zero-drift stock control, smart reorder triggers, and enterprise logistics accuracy.
+            </p>
+            <button
+              type="button"
+              class="btn-auth-ghost"
+              (click)="switchToSignUp()"
+              aria-label="Switch to Sign Up"
+            >
+              SIGN UP
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Security & Trust Footer -->
+  <footer class="auth-footer">
+    <div class="footer-item">
+      <i class="ri-shield-check-line" aria-hidden="true"></i>
+      <span>SOC2 Type II Certified</span>
+    </div>
+    <span class="footer-divider">•</span>
+    <div class="footer-item">
+      <i class="ri-lock-line" aria-hidden="true"></i>
+      <span>256-bit TLS Encryption</span>
+    </div>
+    <span class="footer-divider">•</span>
+    <div class="footer-item">
+      <i class="ri-database-2-line" aria-hidden="true"></i>
+      <span>PostgreSQL 18 Multi-AZ Mesh</span>
+    </div>
+  </footer>
+</div>

@@ -1,35 +1,110 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './guards/auth.guard';
-import { LoginComponent } from './components/login/login.component';
-import { ShellComponent } from './components/shell/shell.component';
-import { DashboardComponent } from './components/dashboard/dashboard.component';
-import { InventoryComponent } from './components/inventory/inventory.component';
-import { ProductsComponent } from './components/products/products.component';
-import { WarehousesComponent } from './components/warehouses/warehouses.component';
-import { PurchaseOrdersComponent } from './components/purchase-orders/purchase-orders.component';
-import { CustomerOrdersComponent } from './components/customer-orders/customer-orders.component';
-import { StockMovementsComponent } from './components/stock-movements/stock-movements.component';
-import { SuppliersComponent } from './components/suppliers/suppliers.component';
-import { UsersComponent } from './components/users/users.component';
+import { roleGuard } from './guards/role.guard';
 
 export const routes: Routes = [
-  { path: 'login', component: LoginComponent },
   {
     path: '',
-    component: ShellComponent,
+    pathMatch: 'full',
+    loadComponent: () =>
+      import('./components/landing/landing.component').then((m) => m.LandingComponent),
+  },
+  {
+    path: 'landing',
+    loadComponent: () =>
+      import('./components/landing/landing.component').then((m) => m.LandingComponent),
+  },
+  {
+    path: 'login',
+    loadComponent: () =>
+      import('./components/login/login.component').then((m) => m.LoginComponent),
+  },
+  {
+    path: 'register',
+    loadComponent: () =>
+      import('./components/register/register.component').then((m) => m.RegisterComponent),
+  },
+  {
+    path: 'signup',
+    redirectTo: 'register',
+    pathMatch: 'full',
+  },
+  {
+    path: '',
+    loadComponent: () =>
+      import('./components/shell/shell.component').then((m) => m.ShellComponent),
     canActivate: [authGuard],
     children: [
-      { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
-      { path: 'dashboard', component: DashboardComponent },
-      { path: 'inventory', component: InventoryComponent },
-      { path: 'products', component: ProductsComponent },
-      { path: 'warehouses', component: WarehousesComponent },
-      { path: 'purchase-orders', component: PurchaseOrdersComponent },
-      { path: 'customer-orders', component: CustomerOrdersComponent },
-      { path: 'stock-movements', component: StockMovementsComponent },
-      { path: 'suppliers', component: SuppliersComponent },
-      { path: 'users', component: UsersComponent }
-    ]
+      {
+        path: 'dashboard',
+        loadComponent: () =>
+          import('./components/dashboard/dashboard.component').then(
+            (m) => m.DashboardComponent
+          ),
+      },
+      {
+        path: 'inventory',
+        loadComponent: () =>
+          import('./components/inventory/inventory.component').then(
+            (m) => m.InventoryComponent
+          ),
+      },
+      {
+        path: 'products',
+        loadComponent: () =>
+          import('./components/products/products.component').then(
+            (m) => m.ProductsComponent
+          ),
+      },
+      {
+        path: 'warehouses',
+        loadComponent: () =>
+          import('./components/warehouses/warehouses.component').then(
+            (m) => m.WarehousesComponent
+          ),
+      },
+      {
+        path: 'purchase-orders',
+        canActivate: [roleGuard],
+        data: { roles: ['ADMIN', 'WAREHOUSE_MANAGER'] },
+        loadComponent: () =>
+          import('./components/purchase-orders/purchase-orders.component').then(
+            (m) => m.PurchaseOrdersComponent
+          ),
+      },
+      {
+        path: 'customer-orders',
+        canActivate: [roleGuard],
+        data: { roles: ['ADMIN', 'SALES', 'WAREHOUSE_MANAGER'] },
+        loadComponent: () =>
+          import('./components/customer-orders/customer-orders.component').then(
+            (m) => m.CustomerOrdersComponent
+          ),
+      },
+      {
+        path: 'stock-movements',
+        loadComponent: () =>
+          import('./components/stock-movements/stock-movements.component').then(
+            (m) => m.StockMovementsComponent
+          ),
+      },
+      {
+        path: 'suppliers',
+        loadComponent: () =>
+          import('./components/suppliers/suppliers.component').then(
+            (m) => m.SuppliersComponent
+          ),
+      },
+      {
+        path: 'users',
+        canActivate: [roleGuard],
+        data: { roles: ['ADMIN'] },
+        loadComponent: () =>
+          import('./components/users/users.component').then(
+            (m) => m.UsersComponent
+          ),
+      },
+    ],
   },
-  { path: '**', redirectTo: 'dashboard' }
+  { path: '**', redirectTo: 'dashboard' },
 ];

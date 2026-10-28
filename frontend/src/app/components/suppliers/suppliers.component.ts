@@ -23,7 +23,7 @@ import { Supplier } from '../../models/inventory.models';
             <i class="ri-refresh-line" [class.ri-spin]="loading()"></i>
             <span>SYNC</span>
           </button>
-          <button class="btn btn-primary btn-sm" (click)="openCreateModal()">
+          <button *ngIf="authService.isWarehouseManager()" class="btn btn-primary btn-sm" (click)="openCreateModal()">
             <i class="ri-add-line"></i>
             <span>REGISTER NEW SUPPLIER</span>
           </button>
@@ -66,7 +66,12 @@ import { Supplier } from '../../models/inventory.models';
               </td>
               <td style="text-align: right;">
                 <div class="action-btn-group">
-                  <button class="btn btn-secondary btn-sm" (click)="openEditModal(s)" title="Edit Supplier">
+                  <button
+                    *ngIf="authService.isWarehouseManager()"
+                    class="btn btn-secondary btn-sm"
+                    (click)="openEditModal(s)"
+                    title="Edit Supplier"
+                  >
                     <i class="ri-edit-line"></i> EDIT
                   </button>
                   <button

@@ -1,16 +1,18 @@
-import { Component, OnInit, inject, signal, computed } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { InventoryApiService } from '../../services/inventory-api.service';
 import { ToastService } from '../../services/toast.service';
 import { AuthService } from '../../services/auth.service';
 import { Product, Category } from '../../models/inventory.models';
-import { forkJoin } from 'rxjs';
+import { forkJoin, Subject, Subscription } from 'rxjs';
+import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
+import { PaginationComponent } from '../../shared/pagination/pagination.component';
 
 @Component({
   selector: 'app-products',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, PaginationComponent],
   template: `
     <div class="products-page">
       <!-- Page Header -->
@@ -24,11 +26,11 @@ import { forkJoin } from 'rxjs';
             <i class="ri-refresh-line" [class.ri-spin]="loading()"></i>
             <span>SYNC</span>
           </button>
-          <button class="btn btn-secondary btn-sm" (click)="showCategoryDrawer = true">
+          <button *ngIf="authService.isWarehouseManager()" class="btn btn-secondary btn-sm" (click)="showCategoryDrawer = true">
             <i class="ri-folder-settings-line"></i>
             <span>MANAGE CATEGORIES ({{ categories().length }})</span>
           </button>
-          <button class="btn btn-primary btn-sm" (click)="openCreateModal()">
+          <button *ngIf="authService.isWarehouseManager()" class="btn btn-primary btn-sm" (click)="openCreateModal()">
             <i class="ri-add-line"></i>
             <span>REGISTER NEW PRODUCT</span>
           </button>
@@ -43,12 +45,13 @@ import { forkJoin } from 'rxjs';
             <input
               type="text"
               class="form-control input-mono"
-              [(ngModel)]="searchQuery"
+              [ngModel]="searchQuery"
+              (ngModelChange)="onSearchChange($event)"
               placeholder="Search catalog by SKU or title..."
             />
           </div>
           <div class="category-filter-box">
-            <select class="form-select" [(ngModel)]="selectedCategoryId">
+            <select class="form-select" [(ngModel)]="selectedCategoryId" (ngModelChange)="onCategoryChange()">
               <option [ngValue]="null">ALL CATEGORIES</option>
               <option *ngFor="let c of categories()" [ngValue]="c.id">{{ c.name }}</option>
             </select>
@@ -77,7 +80,7 @@ import { forkJoin } from 'rxjs';
                 <div>No products found matching query.</div>
               </td>
             </tr>
-            <tr *ngFor="let p of filteredProducts()">
+            <tr *ngFor="let p of paginatedProducts()">
               <td class="mono text-muted">#{{ p.id }}</td>
               <td class="mono font-bold" style="color: var(--accent-primary);">{{ p.sku }}</td>
               <td style="font-weight: 600;">{{ p.name }}</td>
@@ -95,6 +98,7 @@ import { forkJoin } from 'rxjs';
               <td style="text-align: right;">
                 <div class="action-btn-group">
                   <button
+                    *ngIf="authService.isWarehouseManager()"
                     class="btn btn-secondary btn-sm"
                     (click)="openEditModal(p)"
                     title="Edit product"
@@ -114,6 +118,12 @@ import { forkJoin } from 'rxjs';
             </tr>
           </tbody>
         </table>
+        <app-pagination
+          [page]="page()"
+          [pageSize]="pageSize()"
+          [total]="filteredProducts().length"
+          (pageChange)="page.set($event)"
+        ></app-pagination>
       </div>
 
       <!-- MODAL: CREATE / EDIT PRODUCT -->
@@ -352,6 +362,13 @@ export class ProductsComponent implements OnInit {
   categories = signal<Category[]>([]);
 
   searchQuery = '';
+  searchTerm = signal<string>('');
+  private searchSubject = new Subject<string>();
+  private searchSub?: Subscription;
+
+  page = signal<number>(1);
+  pageSize = signal<number>(10);
+
   selectedCategoryId: number | null = null;
 
   showProductModal = false;
@@ -375,8 +392,8 @@ export class ProductsComponent implements OnInit {
       list = list.filter(p => (p.category?.id === this.selectedCategoryId) || (p.categoryId === this.selectedCategoryId));
     }
 
-    if (this.searchQuery.trim()) {
-      const q = this.searchQuery.toLowerCase().trim();
+    const q = this.searchTerm().toLowerCase().trim();
+    if (q) {
       list = list.filter(p =>
         p.name?.toLowerCase().includes(q) ||
         p.sku?.toLowerCase().includes(q)
@@ -386,8 +403,34 @@ export class ProductsComponent implements OnInit {
     return list;
   });
 
+  paginatedProducts = computed(() => {
+    const list = this.filteredProducts();
+    const start = (this.page() - 1) * this.pageSize();
+    return list.slice(start, start + this.pageSize());
+  });
+
   ngOnInit() {
+    this.searchSub = this.searchSubject.pipe(
+      debounceTime(300),
+      distinctUntilChanged()
+    ).subscribe(q => {
+      this.searchTerm.set(q);
+      this.page.set(1);
+    });
     this.loadData();
+  }
+
+  ngOnDestroy() {
+    this.searchSub?.unsubscribe();
+  }
+
+  onSearchChange(text: string): void {
+    this.searchQuery = text;
+    this.searchSubject.next(text);
+  }
+
+  onCategoryChange(): void {
+    this.page.set(1);
   }
 
   loadData() {

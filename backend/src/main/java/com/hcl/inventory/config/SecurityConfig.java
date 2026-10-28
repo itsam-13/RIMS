@@ -45,11 +45,34 @@ public class SecurityConfig {
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
                 .authorizeHttpRequests(auth -> auth
+                        // Public endpoints: auth & registration
                         .requestMatchers("/api/auth/**", "/error").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/users/register").permitAll()
 
+                        // User Administration (Admin only)
+                        .requestMatchers("/api/users/**").hasRole("ADMIN")
+
+                        // Destructive DELETE operations across all resources (Admin only)
                         .requestMatchers(HttpMethod.DELETE, "/api/**").hasRole("ADMIN")
 
+                        // Inbound procurement & inventory modifications (Admin and Warehouse Manager only)
+                        .requestMatchers("/api/purchase-orders/**").hasAnyRole("ADMIN", "WAREHOUSE_MANAGER")
+                        .requestMatchers(HttpMethod.POST, "/api/inventory/**").hasAnyRole("ADMIN", "WAREHOUSE_MANAGER")
+                        .requestMatchers(HttpMethod.PUT, "/api/inventory/**").hasAnyRole("ADMIN", "WAREHOUSE_MANAGER")
+                        .requestMatchers(HttpMethod.PATCH, "/api/inventory/**").hasAnyRole("ADMIN", "WAREHOUSE_MANAGER")
+                        .requestMatchers(HttpMethod.POST, "/api/stock-movements/**").hasAnyRole("ADMIN", "WAREHOUSE_MANAGER")
+
+                        // Master data management: Products, Categories, Warehouses, Suppliers (Admin and Warehouse Manager only)
+                        .requestMatchers(HttpMethod.POST, "/api/products/**", "/api/categories/**", "/api/warehouses/**", "/api/suppliers/**").hasAnyRole("ADMIN", "WAREHOUSE_MANAGER")
+                        .requestMatchers(HttpMethod.PUT, "/api/products/**", "/api/categories/**", "/api/warehouses/**", "/api/suppliers/**").hasAnyRole("ADMIN", "WAREHOUSE_MANAGER")
+                        .requestMatchers(HttpMethod.PATCH, "/api/products/**", "/api/categories/**", "/api/warehouses/**", "/api/suppliers/**").hasAnyRole("ADMIN", "WAREHOUSE_MANAGER")
+
+                        // Outbound customer sales orders creation and progression (Admin and Sales only)
+                        .requestMatchers(HttpMethod.POST, "/api/orders/**").hasAnyRole("ADMIN", "SALES")
+                        .requestMatchers(HttpMethod.PATCH, "/api/orders/**").hasAnyRole("ADMIN", "SALES")
+                        .requestMatchers(HttpMethod.PUT, "/api/orders/**").hasAnyRole("ADMIN", "SALES")
+
+                        // All remaining read operations (GET inventory, products, warehouses, orders, etc.) require authentication
                         .anyRequest().authenticated()
                 )
 

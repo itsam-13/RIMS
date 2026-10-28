@@ -1,0 +1,301 @@
+<div class="po-page">
+      <!-- Header -->
+      <div class="page-header">
+        <div>
+          <div class="technical-label">SUPPLIER PROCUREMENT</div>
+          <h1 class="page-title">Purchase Orders & Inbound Receiving</h1>
+        </div>
+        <div class="header-actions">
+          <button class="btn btn-secondary btn-sm" (click)="loadData()" [disabled]="loading()">
+            <i class="ri-refresh-line" [class.ri-spin]="loading()"></i>
+            <span>SYNC</span>
+          </button>
+          <button *ngIf="authService.isWarehouseManager()" class="btn btn-primary btn-sm" (click)="openCreateModal()">
+            <i class="ri-add-line"></i>
+            <span>ISSUE PURCHASE ORDER</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Filter Bar -->
+      <div class="filter-panel panel">
+        <div class="filter-grid">
+          <div>
+            <label class="form-label">FILTER BY STATUS</label>
+            <select class="form-select" [(ngModel)]="statusFilter">
+              <option value="ALL">ALL STATUSES ({{ purchaseOrders().length }})</option>
+              <option value="PENDING">PENDING</option>
+              <option value="ORDERED">ORDERED (INBOUND TRANSIT)</option>
+              <option value="RECEIVED">RECEIVED (IN STOCK)</option>
+              <option value="CANCELLED">CANCELLED</option>
+            </select>
+          </div>
+          <div>
+            <label class="form-label">DESTINATION WAREHOUSE</label>
+            <select class="form-select" [(ngModel)]="warehouseFilter">
+              <option [ngValue]="null">ALL DESTINATIONS</option>
+              <option *ngFor="let w of warehouses()" [ngValue]="w.id">{{ w.name }}</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- PO Table -->
+      <div class="table-container">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>PO #</th>
+              <th>ORDER DATE</th>
+              <th>SUPPLIER</th>
+              <th>DESTINATION HUB</th>
+              <th>ITEMS</th>
+              <th>ESTIMATED TOTAL</th>
+              <th>STATUS</th>
+              <th style="text-align: right;">PROCUREMENT ACTIONS</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngIf="filteredPOs().length === 0">
+              <td colspan="8" class="empty-state">
+                <i class="ri-truck-line"></i>
+                <div>No purchase orders found.</div>
+              </td>
+            </tr>
+            <tr *ngFor="let po of filteredPOs()">
+              <td class="mono font-bold" style="color: var(--accent-primary);">PO-{{ po.id }}</td>
+              <td class="mono" style="font-size: 0.78rem;">{{ po.orderDate | slice:0:19 }}</td>
+              <td>
+                <div style="font-weight: 600;">{{ po.supplier?.name || 'Supplier #' + po.supplierId }}</div>
+                <div class="text-muted" style="font-size: 0.72rem;">{{ po.supplier?.contactEmail }}</div>
+              </td>
+              <td>
+                <div style="font-weight: 500;">{{ po.warehouse?.name || 'Warehouse #' + po.warehouseId }}</div>
+                <div class="text-muted" style="font-size: 0.72rem;">{{ po.warehouse?.location }}</div>
+              </td>
+              <td class="mono">
+                <button class="btn btn-ghost btn-sm" (click)="viewDetails(po)" style="font-family: var(--font-mono);">
+                  <i class="ri-file-list-3-line"></i> {{ po.items?.length || 0 }} item(s)
+                </button>
+              </td>
+              <td class="mono font-bold">
+                \${{ calculatePOTotal(po) | number:'1.2-2' }}
+              </td>
+              <td>
+                <app-status-badge [status]="po.status"></app-status-badge>
+              </td>
+              <td style="text-align: right;">
+                <div class="action-btn-group">
+                  <!-- PENDING -> ORDERED -->
+                  <button
+                    *ngIf="po.status === 'PENDING'"
+                    class="btn btn-outline btn-sm"
+                    (click)="markOrdered(po)"
+                    title="Mark as Dispatched by Supplier"
+                  >
+                    <i class="ri-send-plane-line"></i> DISPATCH
+                  </button>
+
+                  <!-- ORDERED -> RECEIVED -->
+                  <button
+                    *ngIf="po.status === 'ORDERED'"
+                    class="btn btn-primary btn-sm"
+                    (click)="markReceived(po)"
+                    title="Receive shipment and increment warehouse stock"
+                  >
+                    <i class="ri-inbox-archive-line"></i> RECEIVE STOCK
+                  </button>
+
+                  <!-- CANCEL -->
+                  <button
+                    *ngIf="po.status === 'PENDING' || po.status === 'ORDERED'"
+                    class="btn btn-danger btn-sm"
+                    (click)="cancelPO(po)"
+                    title="Cancel Purchase Order"
+                  >
+                    <i class="ri-close-circle-line"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="modal-backdrop" *ngIf="showCreateModal">
+        <div class="modal-dialog modal-lg" role="dialog" aria-modal="true" aria-labelledby="create-po-title">
+          <div class="modal-header">
+            <div>
+              <div class="technical-label">Purchase orders</div>
+              <h2 id="create-po-title" class="section-title">New purchase order</h2>
+            </div>
+            <button type="button" class="btn btn-ghost btn-sm" aria-label="Close purchase order form" (click)="closeCreateModal()">
+              <i class="ri-close-line" aria-hidden="true"></i>
+            </button>
+          </div>
+          <div class="modal-body" [formGroup]="poForm">
+            <div class="form-row-2">
+              <div class="form-group">
+                <label class="form-label" for="po-supplier">Supplier</label>
+                <select id="po-supplier" class="form-select" formControlName="supplierId" required>
+                  <option [ngValue]="null" disabled>Choose a supplier…</option>
+                  <option *ngFor="let s of suppliers()" [ngValue]="s.id">
+                    {{ s.name }} ({{ s.leadTimeDays }} days)
+                  </option>
+                </select>
+                <div *ngIf="poForm.get('supplierId')?.invalid && poForm.get('supplierId')?.touched" style="color: #f87171; font-size: 0.76rem; margin-top: 4px;">
+                  Supplier is required.
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="po-warehouse">Receiving warehouse</label>
+                <select id="po-warehouse" class="form-select" formControlName="warehouseId" required>
+                  <option [ngValue]="null" disabled>Choose a warehouse…</option>
+                  <option *ngFor="let w of warehouses()" [ngValue]="w.id">
+                    {{ w.name }} ({{ w.location }}), capacity {{ w.capacity }}
+                  </option>
+                </select>
+                <div *ngIf="poForm.get('warehouseId')?.invalid && poForm.get('warehouseId')?.touched" style="color: #f87171; font-size: 0.76rem; margin-top: 4px;">
+                  Receiving warehouse is required.
+                </div>
+              </div>
+            </div>
+
+            <!-- Dynamic Line Items Section -->
+            <div class="items-header-bar">
+              <div class="technical-label">Items</div>
+              <button type="button" class="btn btn-secondary btn-sm" (click)="addLineItem()">
+                <i class="ri-add-line" aria-hidden="true"></i> Add item
+              </button>
+            </div>
+
+            <div class="line-items-list" formArrayName="items">
+              <div *ngFor="let itemCtrl of poItems.controls; let idx = index" [formGroupName]="idx" class="line-item-row">
+                <div class="item-select-col">
+                  <label class="form-label" *ngIf="idx === 0" [attr.for]="'po-product-' + idx">Product</label>
+                  <select
+                    id="po-product-{{ idx }}"
+                    class="form-select"
+                    [attr.aria-label]="idx > 0 ? 'Product ' + (idx + 1) : null"
+                    formControlName="productId"
+                    (change)="onProductSelect(idx)"
+                  >
+                    <option [ngValue]="null" disabled>Select a product…</option>
+                    <option *ngFor="let p of products()" [ngValue]="p.id">
+                      [{{ p.sku }}] {{ p.name }}
+                    </option>
+                  </select>
+                </div>
+
+                <div class="item-qty-col">
+                  <label class="form-label" *ngIf="idx === 0" [attr.for]="'po-quantity-' + idx">Quantity</label>
+                  <input
+                    id="po-quantity-{{ idx }}"
+                    type="number"
+                    class="form-control input-mono"
+                    [attr.aria-label]="idx > 0 ? 'Quantity for item ' + (idx + 1) : null"
+                    formControlName="quantity"
+                    min="1"
+                    autocomplete="off"
+                  />
+                </div>
+
+                <div class="item-cost-col">
+                  <label class="form-label" *ngIf="idx === 0" [attr.for]="'po-cost-' + idx">Unit cost ($)</label>
+                  <input
+                    id="po-cost-{{ idx }}"
+                    type="number"
+                    class="form-control input-mono"
+                    [attr.aria-label]="idx > 0 ? 'Unit cost for item ' + (idx + 1) : null"
+                    formControlName="unitCost"
+                    min="0"
+                    step="0.01"
+                    autocomplete="off"
+                  />
+                </div>
+
+                <div class="item-subtotal-col">
+                  <label class="form-label" *ngIf="idx === 0">Line total</label>
+                  <div class="mono line-total-val">\${{ ((itemCtrl.get('quantity')?.value || 0) * (itemCtrl.get('unitCost')?.value || 0)) | number:'1.2-2' }}</div>
+                </div>
+
+                <div class="item-remove-col">
+                  <label class="form-label" *ngIf="idx === 0">&nbsp;</label>
+                  <button
+                    type="button"
+                    class="btn btn-ghost btn-sm"
+                    (click)="removeItem(idx)"
+                    [disabled]="poItems.length === 1"
+                    aria-label="Remove line item"
+                    style="color: var(--color-danger);"
+                  >
+                    <i class="ri-delete-bin-line" aria-hidden="true"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Grand Total Bar -->
+            <div class="po-grand-total">
+              <span class="technical-label">Estimated total</span>
+              <span class="mono total-amount">\${{ calculateNewPOTotal() | number:'1.2-2' }}</span>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline" (click)="closeCreateModal()">Cancel</button>
+            <button
+              type="button"
+              class="btn btn-primary"
+              (click)="submitPurchaseOrder()"
+              [disabled]="!isNewPOValid()"
+            >
+              Create purchase order
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- MODAL: VIEW DETAILS -->
+      <div class="modal-backdrop" *ngIf="showDetailsModal && selectedPO">
+        <div class="modal-dialog">
+          <div class="modal-header">
+            <div>
+              <div class="technical-label">PO DETAILS // MANIFEST</div>
+              <div class="section-title">Purchase Order #{{ selectedPO.id }} ({{ selectedPO.status }})</div>
+            </div>
+            <button class="btn btn-ghost btn-sm" (click)="showDetailsModal = false">
+              <i class="ri-close-line"></i>
+            </button>
+          </div>
+          <div class="modal-body">
+            <div class="table-container">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>ITEM</th>
+                    <th>QTY</th>
+                    <th>UNIT COST</th>
+                    <th>LINE TOTAL</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let item of selectedPO.items">
+                    <td>
+                      <strong>{{ item.product?.name || 'Product #' + item.productId }}</strong>
+                      <div class="mono text-muted" style="font-size: 0.72rem;">{{ item.product?.sku }}</div>
+                    </td>
+                    <td class="mono font-bold">{{ item.quantity }}</td>
+                    <td class="mono">\${{ item.unitCost | number:'1.2-2' }}</td>
+                    <td class="mono font-bold">\${{ (item.quantity * item.unitCost) | number:'1.2-2' }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-secondary" (click)="showDetailsModal = false">CLOSE</button>
+          </div>
+        </div>
+      </div>
+    </div>
