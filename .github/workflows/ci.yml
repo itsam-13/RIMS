@@ -53,7 +53,7 @@ jobs:
       - name: Execute Tests
         env:
           PORT: 8082
-          JWT_SECRET: ci_test_secret_key_minimum_256_bits_length_123456789
+          JWT_SECRET: MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIzNDU2Nzg5MDE=
         run: ./mvnw test
 
       - name: Package Spring Boot JAR

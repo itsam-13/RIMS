@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.function.Function;
 
@@ -21,9 +22,24 @@ public class JwtUtil {
     private long expirationMs;
 
     private SecretKey signingKey() {
-        return Keys.hmacShaKeyFor(Decoders.BASE64.decode(secret));
+        byte[] keyBytes;
+        try {
+            keyBytes = Decoders.BASE64.decode(secret);
+        } catch (Exception e) {
+            try {
+                keyBytes = Decoders.BASE64URL.decode(secret);
+            } catch (Exception ex) {
+                keyBytes = secret.getBytes(StandardCharsets.UTF_8);
+            }
+        }
+        if (keyBytes.length < 32) {
+            byte[] rawBytes = secret.getBytes(StandardCharsets.UTF_8);
+            if (rawBytes.length >= 32) {
+                keyBytes = rawBytes;
+            }
+        }
+        return Keys.hmacShaKeyFor(keyBytes);
     }
-
 
     public String generateToken(Long userId, String username, String role) {
         Date now = new Date();
