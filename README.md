@@ -8,101 +8,122 @@
 [![Spring Security](https://img.shields.io/badge/Spring_Security-JWT-6DB33F?style=for-the-badge&logo=spring-security&logoColor=white)](https://spring.io/projects/spring-security)
 [![License](https://img.shields.io/badge/License-Proprietary-red?style=for-the-badge)](#)
 
-An enterprise-grade, distributed **Retail Inventory Management System (RIMS)** built with a **Spring Boot 4 (Java 27)** REST API backend and an **Angular 22** client frontend. The platform provides real-time multi-warehouse stock auditing, supplier procurement lifecycles, atomic customer order fulfillment with upfront stock reservation, inter-hub logistics transfers, and stateless JWT role-based security (`SUPER_ADMIN`, `ADMIN`, `WAREHOUSE_MANAGER`, `SALES`, `PENDING`).
+An enterprise-grade, distributed **Retail Inventory Management System (RIMS)** built with a **Spring Boot 4 (Java 27)** REST API backend and an **Angular 22** client frontend. The platform delivers real-time multi-warehouse stock auditing, supplier procurement lifecycles, atomic customer order fulfillment with upfront stock reservation, inter-hub logistics transfers, and a multi-tenant role-based security framework with superadmin account approval (`SUPER_ADMIN`, `ADMIN`, `WAREHOUSE_MANAGER`, `SALES`, `UNAPPROVED`).
 
-The frontend features a **Deep Forest Green** color palette and a modern **10-Card Bento-Grid** executive command dashboard with glowing telemetry rings, neon sparkline curves, and a minimalist icon dock sidebar.
+The frontend combines a high-performance **Alabaster Canvas & Enterprise Crimson** visual identity with **Geist** typography, an interactive **3D Warehouse Analytics** landing page with subtle pointer parallax and floating levitation, split-screen authentication terminals, and an executive **Bento-Grid** command dashboard with SVG telemetry gauges, sparklines, and facility monitors.
 
 ---
 
 ## Table of Contents
 
-- [Visual Design & Palette](#visual-design--palette)
+- [Visual Design & User Experience](#visual-design--user-experience)
+  - [Design Tokens & Palette](#design-tokens--palette)
+  - [Enterprise SaaS Landing Page](#enterprise-saas-landing-page)
+  - [Split-Screen Authentication & Registration](#split-screen-authentication--registration)
+  - [Executive Bento Command Dashboard](#executive-bento-command-dashboard)
 - [Key Features](#key-features)
-- [System Architecture (UML Component Diagram)](#system-architecture)
+- [System Architecture](#system-architecture)
 - [Repository Structure](#repository-structure)
-- [Domain & Data Models (UML Class Diagram)](#domain--data-models)
-- [Business Workflows & UML Diagrams](#business-workflows--uml-diagrams)
-  - [1. Customer Sales Order & Stock Reservation (Sequence)](#1-customer-sales-order--stock-reservation-sequence)
-  - [2. Supplier Procurement & Goods Receipt (Sequence)](#2-supplier-procurement--goods-receipt-sequence)
-  - [3. Inter-Warehouse Stock Transfer (Sequence)](#3-inter-warehouse-stock-transfer-sequence)
-  - [4. Order Lifecycle State Machines (Statechart)](#4-order-lifecycle-state-machines-statechart)
-  - [5. Authentication & JWT Authorization Flow (Sequence)](#5-authentication--jwt-authorization-flow-sequence)
-- [Security & Authentication](#security--authentication)
+- [Domain & Data Models](#domain--data-models)
+  - [UML Class Diagram](#uml-class-diagram)
+  - [Entity Schema Summary](#entity-schema-summary)
+- [Business Workflows & Sequence Diagrams](#business-workflows--sequence-diagrams)
+  - [1. Customer Sales Order & Stock Reservation](#1-customer-sales-order--stock-reservation-sequence)
+  - [2. Supplier Procurement & Goods Receipt](#2-supplier-procurement--goods-receipt-sequence)
+  - [3. Inter-Warehouse Stock Transfer](#3-inter-warehouse-stock-transfer-sequence)
+  - [4. Order Lifecycle State Machines](#4-order-lifecycle-state-machines-statechart)
+  - [5. Authentication, Registration & Superadmin Approval](#5-authentication-registration--superadmin-approval-flow)
+- [Security, Roles & Account Governance](#security-roles--account-governance)
+  - [Superadmin Bootstrap](#superadmin-bootstrap)
+  - [Self-Service Registration & Quarantine](#self-service-registration--quarantine)
+  - [Role-Based Access Control (RBAC) Matrix](#role-based-access-control-rbac-matrix)
 - [REST API Reference](#rest-api-reference)
-- [Prerequisites & Setup](#prerequisites--setup)
-- [Running the Full-Stack Application](#running-the-full-stack-application)
-- [Frontend Components & Modules](#frontend-components--modules)
+- [Prerequisites & Environment Configuration](#prerequisites--environment-configuration)
+- [Running the Application](#running-the-application)
+- [Validation & Automated Testing](#validation--automated-testing)
+- [Frontend Components & Shared Architecture](#frontend-components--shared-architecture)
 
 ---
 
-## Visual Design & Palette
+## Visual Design & User Experience
 
-The user interface follows a bespoke **Deep Forest Green Bento-Grid** design system implemented in [`frontend/src/styles.css`](file:///c:/Users/acer/Desktop/HCLTech-RIMS/frontend/src/styles.css):
+The application is engineered around an enterprise design system defined in [`frontend/src/styles.css`](frontend/src/styles.css):
 
-### Color Palette
+### Design Tokens & Palette
 
-| Swatch | Hex Code | Purpose in Application |
-|---|---|---|
-| **Deep Forest Black** | `#051F20` | Canvas backdrop with subtle ambient teal/orange radial illumination |
-| **Dark Spruce Green** | `#0B2B26` | Slim icon dock sidebar, card header banners, table headers |
-| **Mid Forest Green** | `#163832` | Bento card surfaces, modal dialogs, and interactive surfaces |
-| **Forest Accent** | `#235347` | Component borders, button backgrounds, and active state indicators |
-| **Mint / Sage Green** | `#8EB69B` | Secondary metrics, labels, glowing curve traces, and brand icons |
-| **Pale Mint / Cream** | `#DAF1DE` | Primary display titles, large numeric readouts, and high-contrast text |
+| Token Role | Light Mode Swatch | Dark Mode Swatch | Purpose in Application |
+|---|---|---|---|
+| **Canvas Background** | `#EFEDE6` (Alabaster) | `#131719` (Carbon) | Ambient warm page backdrop with high contrast ratio |
+| **Card & Panel Surface** | `#FFFFFF` (Pure White) | `#1D2327` (Deep Slate) | Elevated surfaces, modal windows, table containers |
+| **Primary Brand Accent** | `#CD0000` (Enterprise Red) | `#E53935` (Crimson) | Brand logos, primary CTA buttons, active state indicators |
+| **Primary Text / Charcoal** | `#161E22` (Deep Charcoal) | `#F4F6F6` (Off-White) | High-contrast display headlines, metric readouts, body copy |
+| **Secondary & Muted Text**| `#4A5568` / `#6C7A89` | `#94A3B8` / `#CBD5E1` | Metadata labels, breadcrumbs, column headers, timestamps |
+| **Subtle Borders** | `#DFDCD3` | `#2C353B` | Clean card outlines, table row dividers, and input borders |
 
-### Executive Bento Dashboard Features
+### Enterprise SaaS Landing Page
 
-- **Slim Icon Dock Sidebar:** Minimalist 76px vertical navigation rail with an illuminated top brand pill, tooltip navigation, light/dark theme switcher, and operator identity pill.
-- **Operator Greeting & Live Sparkline:** Personalized operator greeting, live digital clock, and glowing neon cyan/mint wave sparkline.
-- **Facility Climate & Conditions:** Real-time facility climate gauge (21°C, humidity, and operational status).
-- **Order Fulfillment Ring Gauge:** Circular SVG gauge tracking daily dispatch velocity and percentage.
-- **Reorder Sweep Countdown Timer:** Interactive countdown sweep ring with warm amber glow and Start/Pause controls.
-- **Operations Priority Checklist:** Interactive checklist with completed, in-progress, and pending status tags.
-- **Network Pulse Sine Wave:** Vibrant multi-color wave showing network throughput and sub-15ms fleet latency.
-- **Weekly Dispatch Bar Chart:** 7-day capsule bar chart with active Saturday dispatch peak (`148 units`).
-- **Quick Action Hub:** One-click shortcuts for PO creation, Sales Orders, Stock Transfers, Audits, Catalog, and Warehouses.
-- **Inbound Deliveries Schedule:** Calendar schedule of arriving supplier freight.
-- **Facility Storage Status:** Overall facility capacity ring and individual warehouse fill rate progress bars.
+Located at `/` (and `/landing`), the public landing page introduces operators and stakeholders to the RIMS platform:
+- **3D Warehouse Analytics Artwork:** Features a high-fidelity warehouse operator interacting with real-time HUD telemetry, conveyor belt with packaged goods, and an autonomous delivery drone (`frontend/public/hero-warehouse-analytics.png`).
+- **Restrained Motion Design:**
+  - Continuous 5-second vertical levitation (`translateY(-8px)`) with an elliptical ambient floor shadow.
+  - Subtle pointer-responsive parallax bounded strictly to 4–6px of displacement (`translate3d`), returning smoothly to origin on cursor leave.
+  - Parallax is automatically disabled on touch devices and respects `prefers-reduced-motion: reduce`.
+- **Dynamic Dual-Pill CTA:** Intelligently switches between **"LAUNCH CONSOLE"** + **"CREATE ACCOUNT"** for guest visitors and **"GO TO DASHBOARD"** for authenticated operators.
+- **Enterprise Status Indicators:** Compact security & compliance badges (SOC2 Type II, ISO 27001, 99.99% SLA) and responsive mobile navigation drawer.
+
+### Split-Screen Authentication & Registration
+
+- **Login Terminal (`/login`):** Split-screen layout pairing input forms with branded 3D logistics artwork (`auth-login-art.png`), one-click quick-fill demo operator profiles (`SUPER_ADMIN`, `ADMIN`, `WAREHOUSE_MANAGER`, `SALES`), and live error diagnostics.
+- **Operator Registration (`/register`):** Dedicated registration terminal with 3D packaging artwork (`auth-register-art.png`), real-time form validation, password matching, and immediate auto-routing into an approval notice for unapproved accounts.
+
+### Executive Bento Command Dashboard
+
+Located at `/dashboard` for approved operators:
+- **Slim Icon Dock Sidebar:** 76px minimalist navigation rail with active badge indicators, theme toggles, and user initials pill.
+- **Facility Telemetry & Sparklines:** Live digital clock, facility temperature/humidity status (21°C), and SVG sparklines.
+- **Order Velocity Ring Gauge:** Radial SVG gauge tracking daily dispatch velocity against active targets.
+- **Operations Priority Checklist:** Interactive dispatch priority board with pending and completed badges.
+- **Quick Action Hub:** Instant shortcuts to PO creation, customer sales orders, inter-hub stock transfers, and audits.
 
 ---
 
 ## Key Features
 
-- **Multi-Warehouse Stock Management**: Real-time stock tracking across geographically dispersed facilities with capacity limits, reorder thresholds, and instant delta adjustments.
-- **Supplier Procurement (Purchase Orders)**: Complete procurement lifecycle (`PENDING` $\rightarrow$ `ORDERED` $\rightarrow$ `RECEIVED`) where receiving shipments **atomically increments inventory** in the destination hub.
-- **Customer Sales Fulfillment**: Order placement with strict upfront stock availability checks, automated stock reservation, order lifecycles (`PLACED` $\rightarrow$ `SHIPPED` $\rightarrow$ `DELIVERED`), and automated stock restoration on cancellation.
-- **Stock Movement Auditing**: Complete immutable audit trail for inventory operations:
-  - `IN`: Supplier deliveries and new stock arrivals.
-  - `OUT`: Dispatches and shrinkage adjustments.
-  - `TRANSFER`: Atomic inter-warehouse transfers (simultaneous source decrement and destination increment).
-- **Stateless Role-Based JWT Security**: Secured endpoints with HMAC SHA-256 tokens, BCrypt password hashing, write-only password serialization, and granular role authorization (`SUPER_ADMIN`, `ADMIN`, `WAREHOUSE_MANAGER`, `SALES`, `PENDING`).
+- **Multi-Warehouse Stock Auditing**: Real-time stock counts across multiple facilities with capacity utilization meters, reorder thresholds, exact physical overwrite audits, and incremental delta adjustments.
+- **Atomic Customer Order Fulfillment**: Sales order processing with mandatory upfront stock reservation across all line items, atomic decrement, and automatic stock restoration upon cancellation.
+- **Supplier Procurement Workflows**: Complete purchase order lifecycle (`PENDING` $\rightarrow$ `ORDERED` $\rightarrow$ `RECEIVED`) where receiving a shipment atomically increments inventory at the destination hub and logs an immutable audit entry.
+- **Inter-Warehouse Stock Transfers**: Atomic logistics transfers between facilities ensuring simultaneous source decrement and destination increment within a single database transaction.
+- **Superadmin Governance & User Approval**: Account quarantine where self-registered users remain unapproved until vetted by a Superadmin. Dynamic role promotion, profile editing, and account revocation.
+- **Stateless JWT Security**: HMAC-SHA256 tokens with 24-hour expiration, BCrypt password hashing, and write-only password serialization preventing credential exposure.
 
 ---
 
 ## System Architecture
 
-The system implements a decoupled, modern multi-tier architecture with an **Angular 22** client communicating over REST/JSON with a **Spring Boot 4.1.1** backend, backed by **PostgreSQL**:
+The application implements a decoupled, modern multi-tier architecture with an **Angular 22** client communicating via REST/JSON with a **Spring Boot 4.1.1** backend on **Java 27**, backed by a **PostgreSQL 16+** relational database:
 
 ```mermaid
 flowchart TD
     subgraph ClientTier["Frontend Client Tier (Angular 22 - Port 4200)"]
-        UI["Bento-Grid Dashboard & View Modules\n(Dashboard, Inventory, Catalog, Hubs, Orders, Movements)"]
-        Dock["Slim Navigation Dock Sidebar"]
-        AuthG["AuthGuard\n(Client-Side Route Protection)"]
-        Interceptor["AuthInterceptor\n(Bearer JWT Injection)"]
+        Landing["Landing Page (/)\n(3D Warehouse Illustration & Parallax)"]
+        AuthViews["Auth Terminals\n(/login, /register)"]
+        Dashboard["Bento Dashboard & Modules\n(Inventory, Catalog, Hubs, Orders, Users)"]
+        Guards["Guards Layer\n(authGuard, approvalGuard, roleGuard)"]
+        Interceptor["AuthInterceptor\n(Bearer JWT Token Injection)"]
         APISvc["InventoryApiService & AuthService"]
         
-        Dock --> UI
-        AuthG -.-> UI
-        UI --> APISvc
+        Landing --> AuthViews
+        AuthViews --> Guards
+        Guards --> Dashboard
+        Dashboard --> APISvc
         APISvc --> Interceptor
     end
 
-    subgraph SecurityTier["Security & Gateway Tier (Spring Security)"]
+    subgraph SecurityTier["Security & Gateway Tier (Spring Security 6)"]
         Proxy["Angular Proxy /api (Forward to 8082)"]
-        CORS["CorsFilter"]
-        JWTFilter["JwtAuthFilter\n(HMAC-SHA256 Token Validation)"]
-        SecCtx["SecurityContextHolder\n(Role Enforcement: SUPER_ADMIN, ADMIN, WAREHOUSE_MANAGER, SALES)"]
+        CORS["CorsConfigurationSource"]
+        JWTFilter["JwtAuthFilter\n(Token Signature & User Approval Check)"]
+        SecCtx["SecurityContextHolder\n(Authorities: SUPER_ADMIN, ADMIN, WAREHOUSE_MANAGER, SALES)"]
         
         Interceptor --> Proxy
         Proxy --> CORS
@@ -111,23 +132,25 @@ flowchart TD
     end
 
     subgraph ControllerTier["REST Controller Tier (Spring Boot 4.1.1 - Port 8082)"]
-        SecCtx --> AuthCtrl["AuthController\n/api/auth"]
+        SecCtx --> AuthCtrl["AuthController\n/api/auth (login, status)"]
+        SecCtx --> UserCtrl["UserController\n/api/users (approval, roles)"]
         SecCtx --> ProdCtrl["Product & Category Controllers\n/api/products, /api/categories"]
         SecCtx --> WhCtrl["Warehouse & Inventory Controllers\n/api/warehouses, /api/inventory"]
         SecCtx --> POCtrl["PurchaseOrderController\n/api/purchase-orders"]
         SecCtx --> CustCtrl["CustomerOrderController\n/api/orders"]
         SecCtx --> MvmtCtrl["StockMovementController\n/api/stock-movements"]
-        SecCtx --> UserCtrl["UserController\n/api/users"]
     end
 
     subgraph ServiceTier["Business Service Tier (@Service, @Transactional)"]
+        Bootstrap["SuperAdminBootstrap\n(Auto-provision superadmin on startup)"]
         AuthCtrl --> UserSvc["UserService & JwtUtil"]
+        UserCtrl --> UserSvc
         ProdCtrl --> ProdSvc["ProductService & CategoryService"]
         WhCtrl --> WhSvc["WarehouseService"]
-        WhCtrl --> InvSvc["InventoryService\n(Delta Adjust, Physical Overwrite, Availability Check)"]
-        POCtrl --> POSvc["PurchaseOrderService\n(Procurement State Machine)"]
-        CustCtrl --> CustSvc["CustomerOrderService\n(Stock Reservation & Sales Order Lifecycle)"]
-        MvmtCtrl --> MvmtSvc["StockMovementService\n(IN, OUT, Atomic TRANSFER Ledger)"]
+        WhCtrl --> InvSvc["InventoryService\n(Delta adjustments, physical audit, validation)"]
+        POCtrl --> POSvc["PurchaseOrderService\n(Procurement state machine)"]
+        CustCtrl --> CustSvc["CustomerOrderService\n(Atomic stock reservation)"]
+        MvmtCtrl --> MvmtSvc["StockMovementService\n(Atomic inter-hub transfer ledger)"]
         
         POSvc --> InvSvc
         POSvc --> MvmtSvc
@@ -136,7 +159,7 @@ flowchart TD
     end
 
     subgraph PersistenceTier["Data Access Tier (Spring Data JPA / Hibernate)"]
-        UserSvc --> Repos["Spring Data JPA Repositories\n(ProductRepo, InventoryRepo, WarehouseRepo,\nPurchaseOrderRepo, CustomerOrderRepo, StockMovementRepo, UserRepo)"]
+        UserSvc --> Repos["Repositories\n(UserRepo, ProductRepo, InventoryRepo, WarehouseRepo,\nPurchaseOrderRepo, CustomerOrderRepo, StockMovementRepo)"]
         ProdSvc --> Repos
         WhSvc --> Repos
         InvSvc --> Repos
@@ -156,59 +179,74 @@ flowchart TD
 
 ```text
 HCLTech-RIMS/
-├── backend/                       # Spring Boot REST API Service (Port 8082)
-│   ├── .mvn/                      # Maven Wrapper configuration
+├── .github/
+│   └── workflows/
+│       └── ci.yml                         # Full-stack GitHub Actions CI pipeline
+├── backend/                               # Spring Boot REST API Service (Port 8082)
+│   ├── .mvn/                              # Maven Wrapper configuration
 │   ├── src/
 │   │   ├── main/
 │   │   │   ├── java/com/hcl/inventory/
-│   │   │   │   ├── config/        # SecurityConfig (JWT + CORS), PasswordConfig
-│   │   │   │   ├── controller/    # 10 REST Controllers
-│   │   │   │   ├── dto/           # Request/Response DTO payloads
-│   │   │   │   ├── exception/     # GlobalExceptionHandler (@RestControllerAdvice)
-│   │   │   │   ├── model/         # 11 JPA Domain Entities
-│   │   │   │   ├── repository/    # 9 Spring Data JPA Repositories
-│   │   │   │   ├── security/      # JwtAuthFilter & JwtUtil
-│   │   │   │   ├── service/       # Business workflows & lifecycle logic
+│   │   │   │   ├── config/                # SecurityConfig, SuperAdminBootstrap, PasswordConfig
+│   │   │   │   ├── controller/            # 10 REST Controllers (Auth, Users, Products, Orders, etc.)
+│   │   │   │   ├── dto/                   # Request/Response records (LoginRequest, ApprovalUpdate, etc.)
+│   │   │   │   ├── exception/             # GlobalExceptionHandler (@RestControllerAdvice)
+│   │   │   │   ├── model/                 # 11 JPA Domain Entities & Operational Enums
+│   │   │   │   ├── repository/            # 10 Spring Data JPA Repositories
+│   │   │   │   ├── security/              # JwtAuthFilter & JwtUtil
+│   │   │   │   ├── service/               # Core business services (@Transactional)
 │   │   │   │   └── InventoryApplication.java
 │   │   │   └── resources/
-│   │   │       ├── application.yaml        # Port 8082 & DB configuration
-│   │   │       └── application-local.yaml  # Local development overrides
-│   │   └── test/                  # Test suites & isolated H2 profile
-│   ├── mvnw / mvnw.cmd            # Maven wrapper executables
-│   └── pom.xml                    # Maven POM (Java 27, Spring Boot 4.1.1, Lombok 1.18.48)
-├── frontend/                      # Angular 22 Single Page Application (Port 4200)
+│   │   │       ├── application.yaml       # Core application configuration
+│   │   │       └── application-local.yaml # Local development overrides
+│   │   └── test/                          # Unit and integration test suites
+│   ├── mvnw / mvnw.cmd                    # Maven wrapper executables
+│   └── pom.xml                            # Maven POM (Java 27, Spring Boot 4.1.1, Lombok)
+├── frontend/                              # Angular 22 Single Page Application (Port 4200)
+│   ├── public/                            # Static assets and high-fidelity graphics
+│   │   ├── fonts/geist/                   # Self-hosted Geist Variable font files
+│   │   ├── auth-login-art.png             # Split-screen 3D login artwork
+│   │   ├── auth-register-art.png          # Split-screen 3D registration artwork
+│   │   ├── hero-warehouse-analytics.png   # 3D Warehouse Analytics operator & drone illustration
+│   │   └── rims-mark.svg                  # SVG brand emblem
 │   ├── src/
 │   │   ├── app/
-│   │   │   ├── components/        # Bento Dashboard, Inventory, Catalog, Hubs, Orders
-│   │   │   │   ├── dashboard/     # 10-card Bento dashboard with SVG charts
-│   │   │   │   ├── inventory/     # Stock matrix, delta adjust & audit modals
-│   │   │   │   ├── products/      # Catalog management & category taxonomy
-│   │   │   │   ├── warehouses/    # Hub cards, capacity meters & manifests
-│   │   │   │   ├── purchase-orders/ # PO builder & receiving workflows
-│   │   │   │   ├── customer-orders/ # Sales orders with real-time stock checks
-│   │   │   │   ├── stock-movements/ # Immutable movement ledger & transfers
-│   │   │   │   ├── suppliers/     # Vendor directory & lead time tracking
-│   │   │   │   ├── users/         # Operator directory & role permissions
-│   │   │   │   ├── login/         # Forest green authentication terminal
-│   │   │   │   ├── shell/         # Slim icon dock sidebar layout
-│   │   │   │   └── toast/         # Animated notification system
-│   │   │   ├── guards/            # authGuard (route protection)
-│   │   │   ├── interceptors/      # authInterceptor (JWT token injection)
-│   │   │   ├── models/            # TypeScript interfaces matching backend models
-│   │   │   ├── services/          # AuthService, InventoryApiService, ToastService
-│   │   │   ├── app.config.ts      # App configuration with HttpClient & Interceptor
-│   │   │   ├── app.routes.ts      # Angular routing definitions
-│   │   │   └── app.ts             # Root application component
-│   │   ├── index.html             # Fonts, Remixicon icons, and viewport
-│   │   └── styles.css             # Forest green Bento-grid design system
-│   ├── angular.json               # Angular CLI configuration with proxy setup
-│   ├── package.json               # Node dependencies (Angular 22, RxJS, Vite)
-│   └── proxy.conf.json            # Reverse proxy forwarding /api to port 8082
-├── docs/                          # Architecture & design specifications
-│   ├── DESIGN.md                  # Comprehensive visual design system authority
-│   ├── PROJECT_CRUX.md            # Crux & system architecture specification
-│   └── TEST_REPORT.md             # System test audit & defect matrix
-└── README.md                      # Project documentation and quickstart
+│   │   │   ├── components/                # Application View Components
+│   │   │   │   ├── landing/               # Enterprise SaaS landing page with parallax & levitation
+│   │   │   │   ├── login/                 # Split-screen login with demo credentials
+│   │   │   │   ├── register/              # Split-screen registration with validation
+│   │   │   │   ├── dashboard/             # 10-card Bento dashboard with SVG gauges & charts
+│   │   │   │   ├── inventory/             # Stock matrix, delta adjustments, and audit overrides
+│   │   │   │   ├── products/              # Product catalog and category taxonomy
+│   │   │   │   ├── warehouses/            # Warehouse telemetry, capacity bars, and manifests
+│   │   │   │   ├── purchase-orders/       # Procurement PO builder and receiving workflow
+│   │   │   │   ├── customer-orders/       # Customer orders with real-time stock checks
+│   │   │   │   ├── stock-movements/       # Stock movement audit ledger and transfer modal
+│   │   │   │   ├── suppliers/             # Vendor directory and delivery lead times
+│   │   │   │   ├── users/                 # Superadmin operator registry & approval controls
+│   │   │   │   ├── shell/                 # Dock sidebar shell layout and user navigation
+│   │   │   │   └── toast/                 # Animated alert toasts
+│   │   │   ├── shared/                    # Reusable Presentation Components
+│   │   │   │   ├── confirm-modal/         # Accessible confirmation dialogs
+│   │   │   │   ├── pagination/            # Standardized page control widgets
+│   │   │   │   └── status-badge/          # Uniform status pill badges
+│   │   │   ├── guards/                    # authGuard, approvalGuard, roleGuard
+│   │   │   ├── interceptors/              # authInterceptor (JWT injection)
+│   │   │   ├── models/                    # TypeScript interfaces matching backend models
+│   │   │   ├── services/                  # AuthService, InventoryApiService, ToastService
+│   │   │   ├── app.config.ts              # Angular application providers and HTTP setup
+│   │   │   ├── app.routes.ts              # Route definitions with lazy loading & guards
+│   │   │   └── app.ts                     # Root application shell component
+│   │   ├── index.html                     # Viewport meta tags and font declarations
+│   │   └── styles.css                     # Alabaster & Crimson design system tokens
+│   ├── angular.json                       # Angular workspace configuration
+│   ├── package.json                       # Node dependencies (Angular 22, RxJS, Vite)
+│   ├── proxy.conf.json                    # Reverse proxy forwarding /api to port 8082
+│   └── tsconfig.json                      # Strict TypeScript compiler settings
+├── docs/                                  # Specifications and design documentation
+│   ├── DESIGN.md                          # Design system reference
+│   └── PROJECT_CRUX.md                    # System architecture specification
+└── README.md                              # Project documentation and quickstart
 ```
 
 ---
@@ -216,8 +254,6 @@ HCLTech-RIMS/
 ## Domain & Data Models
 
 ### UML Class Diagram
-
-The following UML class diagram models all 11 JPA domain entities, their primary attributes, associations, and operational enumerations:
 
 ```mermaid
 classDiagram
@@ -229,6 +265,7 @@ classDiagram
         +String email
         +String password
         +Role role
+        +boolean approved
     }
 
     class Category {
@@ -298,11 +335,11 @@ classDiagram
 
     class Role {
         <<enumeration>>
-        PENDING
         SUPER_ADMIN
         ADMIN
         WAREHOUSE_MANAGER
         SALES
+        PENDING
     }
 
     class POStatus {
@@ -353,25 +390,25 @@ classDiagram
 
 | Entity | Table | Key Fields | Description |
 | :--- | :--- | :--- | :--- |
-| **`User`** | `users` | `id`, `username`, `email`, `password`, `role` | Operator accounts. Public registrations are `PENDING`; passwords are write-only. |
-| **`Category`** | `categories` | `id`, `name` | Product taxonomy and grouping. |
-| **`Product`** | `product` | `id`, `name`, `sku`, `price`, `reorderLevel`, `category_id` | Catalog item with unique SKU and reorder thresholds. |
-| **`Warehouse`** | `warehouses` | `id`, `name`, `location`, `capacity` | Physical storage facilities. |
+| **`User`** | `users` | `id`, `username`, `email`, `password`, `role`, `approved` | Accounts with role-based access. Passwords are write-only. |
+| **`Category`** | `categories` | `id`, `name` | Classification taxonomy for catalog products. |
+| **`Product`** | `product` | `id`, `name`, `sku`, `price`, `reorderLevel`, `category_id` | Catalog item with unique SKU and safety stock threshold. |
+| **`Warehouse`** | `warehouses` | `id`, `name`, `location`, `capacity` | Physical storage hub with capacity limits. |
 | **`Inventory`** | `inventory` | `id`, `product_id`, `warehouse_id`, `quantity` | Stock counts per product-warehouse pair (`UNIQUE [product_id, warehouse_id]`). |
 | **`Supplier`** | `suppliers` | `id`, `name`, `contactEmail`, `phone`, `leadTimeDays` | Approved procurement vendors with delivery lead times. |
 | **`PurchaseOrder`** | `purchase_orders` | `id`, `supplier_id`, `warehouse_id`, `status`, `orderDate` | Inbound orders (`PENDING`, `ORDERED`, `RECEIVED`, `CANCELLED`). |
-| **`PurchaseOrderItem`**| `purchase_order_items` | `id`, `purchase_order_id`, `product_id`, `quantity`, `unitCost` | Line items with unit costs and quantities. |
+| **`PurchaseOrderItem`**| `purchase_order_items` | `id`, `purchase_order_id`, `product_id`, `quantity`, `unitCost` | Line items for inbound shipments with purchase cost. |
 | **`CustomerOrder`** | `customer_orders` | `id`, `customerName`, `warehouse_id`, `user_id`, `status`, `orderDate` | Outbound sales orders (`PLACED`, `SHIPPED`, `DELIVERED`, `CANCELLED`). |
-| **`OrderItem`** | `order_items` | `id`, `customer_order_id`, `product_id`, `quantity`, `unitPrice` | Line items for customer orders. |
-| **`StockMovement`** | `stock_movements` | `id`, `product_id`, `from_warehouse_id`, `to_warehouse_id`, `quantity`, `type`, `timestamp` | Audit log for `IN`, `OUT`, and `TRANSFER` operations. |
+| **`OrderItem`** | `order_items` | `id`, `customer_order_id`, `product_id`, `quantity`, `unitPrice` | Line items for sales orders with unit selling price. |
+| **`StockMovement`** | `stock_movements` | `id`, `product_id`, `from_warehouse_id`, `to_warehouse_id`, `quantity`, `type`, `timestamp` | Immutable movement log for `IN`, `OUT`, and `TRANSFER` operations. |
 
 ---
 
-## Business Workflows & UML Diagrams
+## Business Workflows & Sequence Diagrams
 
 ### 1. Customer Sales Order & Stock Reservation (Sequence)
 
-Customer order placement enforces **strict upfront stock validation** across all line items before decrementing stock. If any single product has insufficient quantity in the target warehouse, the transaction is rejected immediately with zero changes applied to the database:
+Order placement enforces **strict upfront stock checks** across all items before reserving inventory. If any product has insufficient stock in the selected warehouse, the entire transaction rolls back immediately:
 
 ```mermaid
 sequenceDiagram
@@ -388,7 +425,7 @@ sequenceDiagram
     Sales->>Client: Build Order (Customer Name, Warehouse, Items)
     Client->>Interceptor: POST /api/orders (Order Payload)
     Interceptor->>Filter: Attach Header [Authorization: Bearer <JWT>]
-    Filter->>Filter: Verify JWT Signature & Claims
+    Filter->>Filter: Validate JWT Signature & Active Approval
     Filter->>Controller: Forward Authenticated Request
     Controller->>OrderSvc: placeOrder(customerOrder)
     
@@ -397,7 +434,7 @@ sequenceDiagram
     loop For Every Line Item
         OrderSvc->>InvSvc: getAvailableQuantity(productId, warehouseId)
         InvSvc->>DB: SELECT quantity FROM inventory WHERE product_id=? AND warehouse_id=?
-        DB-->>InvSvc: Available Quantity
+        DB-->>InvSvc: Current Available Quantity
         InvSvc-->>OrderSvc: Return Available Stock Count
     end
 
@@ -421,7 +458,7 @@ sequenceDiagram
 
 ### 2. Supplier Procurement & Goods Receipt (Sequence)
 
-Inbound procurement flows from initial creation to vendor confirmation and goods receipt. When goods arrive at the destination warehouse, the manager marks the PO as `RECEIVED`, which **atomically increments inventory** and writes an immutable audit record:
+When freight arrives at a warehouse, marking a PO as `RECEIVED` **atomically increments inventory** in the destination facility and writes an audit log:
 
 ```mermaid
 sequenceDiagram
@@ -457,8 +494,6 @@ sequenceDiagram
 ```
 
 ### 3. Inter-Warehouse Stock Transfer (Sequence)
-
-Inter-hub logistics movements transfer inventory between facilities. The system atomically decrements the source facility (ensuring stock is available) and increments the destination facility, recording a single `TRANSFER` audit entry:
 
 ```mermaid
 sequenceDiagram
@@ -497,8 +532,6 @@ sequenceDiagram
 
 ### 4. Order Lifecycle State Machines (Statechart)
 
-The lifecycles of Customer Orders and Purchase Orders are governed by strict finite state machines:
-
 ```mermaid
 stateDiagram-v2
     direction LR
@@ -526,151 +559,174 @@ stateDiagram-v2
     }
 ```
 
-### 5. Authentication & JWT Authorization Flow (Sequence)
-
-Authentication is completely stateless. Clients authenticate against `/api/auth/login` to obtain an HMAC SHA-256 token, which is stored locally and attached to subsequent requests:
+### 5. Authentication, Registration & Superadmin Approval Flow
 
 ```mermaid
 sequenceDiagram
     autonumber
-    actor User as Operator
-    participant Client as Angular Client (Login Terminal)
-    participant AuthFilter as JwtAuthFilter
+    actor User as New Operator
+    actor Admin as Superadmin
+    participant Client as Angular Client
     participant AuthCtrl as AuthController
-    participant AuthMgr as AuthenticationManager
-    participant JwtUtil as JwtUtil
-    participant ProtectedCtrl as Protected Controllers (/api/**)
+    participant UserCtrl as UserController
+    participant Guard as approvalGuard
+    participant Filter as JwtAuthFilter
+    participant DB as PostgreSQL Database
 
-    rect rgb(22, 56, 50)
-    Note over User,JwtUtil: 1. Authentication Phase
-    User->>Client: Submit Credentials (username, password)
-    Client->>AuthCtrl: POST /api/auth/login {username, password}
-    AuthCtrl->>AuthMgr: authenticate(UsernamePasswordAuthenticationToken)
-    AuthMgr->>AuthMgr: Verify password using BCrypt
-    AuthCtrl->>JwtUtil: generateToken(username, roles)
-    JwtUtil-->>AuthCtrl: Signed JWT Token (HMAC SHA-256, 24h validity)
-    AuthCtrl-->>Client: 200 OK {token, role, username}
-    Client->>Client: Store token in localStorage
-    end
-
-    rect rgb(11, 43, 38)
-    Note over User,ProtectedCtrl: 2. Authenticated Request Phase
-    User->>Client: Navigate to Inventory Matrix / Warehouses
-    Client->>AuthFilter: HTTP GET /api/inventory [Authorization: Bearer <token>]
-    AuthFilter->>JwtUtil: validateToken(token) & extractUsername()
-    JwtUtil-->>AuthFilter: Valid Claims (Subject: user, Role: WAREHOUSE_MANAGER)
-    AuthFilter->>AuthFilter: Set SecurityContextHolder(Authentication)
-    AuthFilter->>ProtectedCtrl: Forward to InventoryController
-    ProtectedCtrl-->>Client: 200 OK [Inventory Payload]
-    Client-->>User: Render Stock Matrix View
-    end
+    User->>Client: Submit Registration Form (username, email, password)
+    Client->>UserCtrl: POST /api/users/register
+    UserCtrl->>DB: INSERT INTO users (role='SALES', approved=false)
+    UserCtrl-->>Client: 201 Created
+    Client->>AuthCtrl: POST /api/auth/login
+    AuthCtrl-->>Client: 200 OK {token, approved: false}
+    
+    User->>Client: Navigate to /dashboard
+    Client->>Guard: Evaluate Route Activation
+    Guard-->>Client: Intercept -> Render Pending Approval Notice
+    
+    Admin->>Client: Log in to Superadmin Console (/users)
+    Admin->>UserCtrl: PATCH /api/users/{id}/approval {approved: true}
+    UserCtrl->>DB: UPDATE users SET approved=true WHERE id=?
+    UserCtrl-->>Client: 200 OK
+    
+    Note over Client,Filter: Polling /api/auth/status detects approval
+    Client->>Filter: Request Workspace Resources
+    Filter->>DB: Check User State -> Approved: true
+    Filter-->>Client: Grants Access -> Full Dashboard Rendered
 ```
 
 ---
 
-## Security & Authentication
+## Security, Roles & Account Governance
 
-Authentication is handled via stateless **JSON Web Tokens (JWT)**:
+### Superadmin Bootstrap
 
-- **Tokens**: HMAC SHA-256 tokens (`jjwt-api 0.12.6`) with a 24-hour expiration window.
-- **Authorization Header**: Client requests include `Authorization: Bearer <token>`.
-- **Public Routes**:
-  - `POST /api/auth/login` — Returns token and role.
-  - `POST /api/users/register` — Registers a new user account with BCrypt password hashing.
-- **Superadmin Only**:
-  - User listing, provisioning, approval, role assignment, account updates, and deletion require `ROLE_SUPER_ADMIN`.
-  - Public registrations start with `SALES` but remain unapproved; sign-in shows an approval notice while workspace APIs stay blocked.
-- **Granular Role Permissions**:
-  - `SUPER_ADMIN`: Full operational access and user administration.
-  - `ADMIN`: Full operational access, without user administration.
-  - `WAREHOUSE_MANAGER`: Inventory management, stock movements, and purchase orders.
-  - `SALES`: Customer sales order creation and fulfillment tracking.
+When the backend starts up, `SuperAdminBootstrap` checks if an administrative account exists. If not, it provisions the initial Superadmin using the provided environment variables:
+
+```bash
+SUPER_ADMIN_USERNAME=admin
+SUPER_ADMIN_EMAIL=admin@rims.internal
+SUPER_ADMIN_PASSWORD=AdminSecurePassword123!
+```
+
+Passwords are encrypted using **BCrypt** with 10 salt rounds. Subsequent restarts recognize the existing account and avoid overwriting administrative passwords.
+
+### Self-Service Registration & Quarantine
+
+Any user can register via `/register` or `POST /api/users/register`. Public registrations are automatically assigned:
+- `role`: `Role.SALES`
+- `approved`: `false`
+
+When an unapproved user logs in:
+1. They receive a valid JWT token, but the token payload and database checks identify them as `ROLE_UNAPPROVED`.
+2. The Angular frontend `approvalGuard` intercepts workspace navigation and renders a pending approval banner with live status polling.
+3. Spring Security rejects all `/api/**` workspace calls with a `403 Forbidden` until approval is granted.
+
+### Role-Based Access Control (RBAC) Matrix
+
+| Capability / API Scope | `SUPER_ADMIN` | `ADMIN` | `WAREHOUSE_MANAGER` | `SALES` | `UNAPPROVED` |
+|---|:---:|:---:|:---:|:---:|:---:|
+| **Public Landing & Auth** (`/`, `/login`, `/register`) | Full | Full | Full | Full | Full |
+| **Workspace Access** (Dashboard & View Shell) | Full | Full | Full | Full | Blocked |
+| **User Administration & Approval** (`/api/users/**`) | Full | Blocked | Blocked | Blocked | Blocked |
+| **Catalog Management** (Products & Categories) | Full | Full | Full | Read-Only | Blocked |
+| **Warehouse Facility Provisioning** (`/api/warehouses/**`) | Full | Full | Full | Read-Only | Blocked |
+| **Inventory Delta Adjustments & Overwrite Audits** | Full | Full | Full | Read-Only | Blocked |
+| **Purchase Order Procurement & Receiving** | Full | Full | Full | Blocked | Blocked |
+| **Customer Sales Order Creation & Fulfillment** | Full | Full | Full | Full | Blocked |
+| **Destructive Record Deletion** (`DELETE /api/**`) | Full | Full | Blocked | Blocked | Blocked |
+
 ---
 
 ## REST API Reference
 
 All backend endpoints are rooted at `/api`:
 
-### 🔐 Authentication & Users
+### 🔐 Authentication & Session
 | Method | Endpoint | Access | Summary |
 | :--- | :--- | :--- | :--- |
 | `POST` | `/api/auth/login` | Public | Authenticate user credentials and receive JWT |
-| `POST` | `/api/users/register` | Public | Register an unapproved `SALES` account |
-| `POST` | `/api/users` | **Superadmin** | Create an approved operator |
-| `GET` | `/api/users` | **Superadmin** | List all registered operators |
-| `GET` | `/api/users/{id}` | **Superadmin** | Get user profile by ID |
-| `PATCH` | `/api/users/{id}/role` | **Superadmin** | Assign an operational role |
+| `GET` | `/api/auth/status` | Authenticated | Retrieve active user role and approval status |
+
+### 👥 User Administration (Superadmin Only)
+| Method | Endpoint | Access | Summary |
+| :--- | :--- | :--- | :--- |
+| `POST` | `/api/users/register` | Public | Register an unapproved account (`SALES`, `approved=false`) |
+| `POST` | `/api/users` | **Superadmin** | Directly provision an approved operator with custom role |
+| `GET` | `/api/users` | **Superadmin** | List all registered accounts |
+| `GET` | `/api/users/{id}` | **Superadmin** | Get user profile details by ID |
 | `PATCH` | `/api/users/{id}/approval` | **Superadmin** | Approve or revoke workspace access |
-| `PUT` | `/api/users/{id}` | **Superadmin** | Update user profile |
-| `DELETE`| `/api/users/{id}` | **Superadmin** | Revoke and remove a non-superadmin account |
+| `PATCH` | `/api/users/{id}/role` | **Superadmin** | Promote or reassign operational role |
+| `PUT` | `/api/users/{id}` | **Superadmin** | Update user username or email |
+| `DELETE`| `/api/users/{id}` | **Superadmin** | Remove an operator account (non-superadmin) |
 
 ### 📦 Products & Categories
 | Method | Endpoint | Access | Summary |
 | :--- | :--- | :--- | :--- |
-| `GET` | `/api/categories` | Authenticated | List all categories |
-| `POST` | `/api/categories` | Authenticated | Create a new category |
-| `PUT` | `/api/categories/{id}` | Authenticated | Update category name |
+| `GET` | `/api/categories` | Authenticated | List all product categories |
+| `POST` | `/api/categories` | Admin, Mgr | Create a new product category |
+| `PUT` | `/api/categories/{id}` | Admin, Mgr | Update category name |
 | `DELETE`| `/api/categories/{id}` | **Admin** | Delete category |
-| `GET` | `/api/products` | Authenticated | List all products in catalog |
+| `GET` | `/api/products` | Authenticated | List all catalog products |
 | `GET` | `/api/products/{id}` | Authenticated | Get single product by ID |
-| `POST` | `/api/products` | Authenticated | Create product with SKU, price, and category |
-| `PUT` | `/api/products/{id}` | Authenticated | Update product information |
-| `DELETE`| `/api/products/{id}` | **Admin** | Delete product |
+| `POST` | `/api/products` | Admin, Mgr | Create catalog product with SKU, price, reorder level |
+| `PUT` | `/api/products/{id}` | Admin, Mgr | Update product information |
+| `DELETE`| `/api/products/{id}` | **Admin** | Delete product from catalog |
 
 ### 🏢 Warehouses & Inventory
 | Method | Endpoint | Access | Summary |
 | :--- | :--- | :--- | :--- |
 | `GET` | `/api/warehouses` | Authenticated | List all warehouse locations |
-| `POST` | `/api/warehouses` | Authenticated | Provision a new warehouse facility |
-| `PUT` | `/api/warehouses/{id}` | Authenticated | Update warehouse facility details |
-| `DELETE`| `/api/warehouses/{id}` | **Admin** | Delete warehouse |
+| `POST` | `/api/warehouses` | Admin, Mgr | Provision a new warehouse facility |
+| `PUT` | `/api/warehouses/{id}` | Admin, Mgr | Update warehouse details |
+| `DELETE`| `/api/warehouses/{id}` | **Admin** | Delete warehouse facility |
 | `GET` | `/api/inventory` | Authenticated | View all warehouse stock rows |
 | `GET` | `/api/inventory/warehouse/{warehouseId}` | Authenticated | Filter inventory by warehouse |
 | `GET` | `/api/inventory/product/{productId}` | Authenticated | Filter inventory by product |
-| `POST` | `/api/inventory` | Authenticated | Initialize stock for a product-warehouse pair |
-| `PUT` | `/api/inventory/{id}` | Authenticated | Exact physical stock audit count overwrite |
-| `PATCH`| `/api/inventory/adjust?productId={p}&warehouseId={w}` | Authenticated | Delta stock adjustment (`{"delta": 10}`) |
+| `POST` | `/api/inventory` | Admin, Mgr | Initialize stock for a product-warehouse pair |
+| `PUT` | `/api/inventory/{id}` | Admin, Mgr | Exact physical stock audit count overwrite |
+| `PATCH`| `/api/inventory/adjust?productId={p}&warehouseId={w}` | Admin, Mgr | Relative delta adjustment (`{"delta": 10}`) |
 | `DELETE`| `/api/inventory/{id}` | **Admin** | Remove inventory record |
 
 ### 🚚 Suppliers & Purchase Orders
 | Method | Endpoint | Access | Summary |
 | :--- | :--- | :--- | :--- |
 | `GET` | `/api/suppliers` | Authenticated | List registered suppliers |
-| `POST` | `/api/suppliers` | Authenticated | Register new vendor |
+| `POST` | `/api/suppliers` | Admin, Mgr | Register a new supplier vendor |
 | `GET` | `/api/purchase-orders` | Authenticated | List purchase orders |
-| `POST` | `/api/purchase-orders` | Authenticated | Issue PO with dynamic line items |
-| `PATCH`| `/api/purchase-orders/{id}/mark-ordered` | Authenticated | Transition status: `PENDING` $\rightarrow$ `ORDERED` |
-| `PATCH`| `/api/purchase-orders/{id}/mark-received` | Authenticated | Receive PO and automatically increment stock |
-| `PATCH`| `/api/purchase-orders/{id}/cancel` | Authenticated | Cancel pending purchase order |
+| `POST` | `/api/purchase-orders` | Admin, Mgr | Issue purchase order with dynamic line items |
+| `PATCH`| `/api/purchase-orders/{id}/mark-ordered` | Admin, Mgr | Transition status: `PENDING` $\rightarrow$ `ORDERED` |
+| `PATCH`| `/api/purchase-orders/{id}/mark-received` | Admin, Mgr | Receive shipment and automatically increment stock |
+| `PATCH`| `/api/purchase-orders/{id}/cancel` | Admin, Mgr | Cancel purchase order |
 
 ### 🛒 Customer Sales Orders
 | Method | Endpoint | Access | Summary |
 | :--- | :--- | :--- | :--- |
 | `GET` | `/api/orders` | Authenticated | List all customer sales orders |
-| `GET` | `/api/orders/warehouse/{warehouseId}` | Authenticated | View orders fulfilled by a warehouse |
-| `POST` | `/api/orders` | Authenticated | Place order (validates & reserves stock) |
-| `PATCH`| `/api/orders/{id}/mark-shipped` | Authenticated | Transition status: `PLACED` $\rightarrow$ `SHIPPED` |
-| `PATCH`| `/api/orders/{id}/mark-delivered` | Authenticated | Transition status: `SHIPPED` $\rightarrow$ `DELIVERED` |
-| `PATCH`| `/api/orders/{id}/cancel` | Authenticated | Cancel order and automatically restore stock |
+| `GET` | `/api/orders/warehouse/{warehouseId}` | Authenticated | Filter customer orders by warehouse |
+| `POST` | `/api/orders` | Admin, Sales | Place order (validates & reserves stock) |
+| `PATCH`| `/api/orders/{id}/mark-shipped` | Admin, Sales | Transition status: `PLACED` $\rightarrow$ `SHIPPED` |
+| `PATCH`| `/api/orders/{id}/mark-delivered` | Admin, Sales | Transition status: `SHIPPED` $\rightarrow$ `DELIVERED` |
+| `PATCH`| `/api/orders/{id}/cancel` | Admin, Sales | Cancel order and automatically restore stock |
 
-### 🔄 Stock Movements & Transfers
+### 🔄 Stock Movements & Logistics Transfers
 | Method | Endpoint | Access | Summary |
 | :--- | :--- | :--- | :--- |
-| `GET` | `/api/stock-movements` | Authenticated | List all stock movement audit logs |
-| `GET` | `/api/stock-movements/product/{productId}` | Authenticated | Movement logs for a specific product |
-| `POST` | `/api/stock-movements` | Authenticated | Execute an `IN`, `OUT`, or `TRANSFER` movement |
+| `GET` | `/api/stock-movements` | Authenticated | List stock movement audit log entries |
+| `GET` | `/api/stock-movements/product/{productId}` | Authenticated | Filter audit logs by product |
+| `POST` | `/api/stock-movements` | Admin, Mgr | Execute an `IN`, `OUT`, or `TRANSFER` movement |
 
 ---
 
-## Prerequisites & Setup
+## Prerequisites & Environment Configuration
 
-### Requirements
+### System Requirements
 - **Java**: OpenJDK 27 (or 21+)
-- **Node.js**: v20+ or v24+ with `npm`
-- **Database**: PostgreSQL 16+ running locally on port `5432`
-- **Build Tools**: Maven Wrapper (included) & Angular CLI
+- **Node.js**: v20+ or v22+ with `npm`
+- **Database**: PostgreSQL 16+ running on port `5432`
+- **Build Tools**: Maven Wrapper (`mvnw` / `mvnw.cmd`) and Angular CLI
 
-### 1. Database Setup
+### 1. Database Creation
 Create the PostgreSQL database:
 
 ```sql
@@ -679,67 +735,101 @@ CREATE DATABASE inventory;
 
 *(Or via terminal: `createdb -U postgres inventory`)*
 
-### 2. Configure Credentials
-Review [`backend/src/main/resources/application.yaml`](file:///c:/Users/acer/Desktop/HCLTech-RIMS/backend/src/main/resources/application.yaml) and [`application-local.yaml`](file:///c:/Users/acer/Desktop/HCLTech-RIMS/backend/src/main/resources/application-local.yaml) for PostgreSQL connection settings:
+### 2. Configure Environment Variables
 
-```yaml
-server:
-  port: ${PORT:8082}
+Create a `backend/.env` file or export the following variables in your terminal:
 
-spring:
-  datasource:
-    url: jdbc:postgresql://localhost:5432/inventory
-    username: postgres
-    password: your_password
+```bash
+# Database Settings
+DB_URL=jdbc:postgresql://localhost:5432/inventory
+DB_USERNAME=postgres
+DB_PASSWORD=your_postgres_password
+
+# Security & Tokens (Base64-encoded, minimum 32 random bytes)
+JWT_SECRET=c2VjdXJlX2VudGVycHJpc2Vfand0X3NlY3JldF9mb3Jfcmltc19zeXN0ZW1fMjAyNg==
+
+# Superadmin Initial Bootstrap
+SUPER_ADMIN_USERNAME=admin
+SUPER_ADMIN_EMAIL=admin@rims.internal
+SUPER_ADMIN_PASSWORD=AdminSecurePassword123!
+
+# CORS Allowed Origins
+APP_CORS_ALLOWED_ORIGINS=http://localhost:4200,http://localhost:4201
 ```
 
-Set `DB_PASSWORD` and `JWT_SECRET` in the backend environment (or `.env`). `JWT_SECRET` must be Base64 encoded and contain at least 32 random bytes; for PowerShell, generate one with:
-
-```powershell
-[Convert]::ToBase64String([Security.Cryptography.RandomNumberGenerator]::GetBytes(32))
-```
-
-Set `APP_CORS_ALLOWED_ORIGINS` to a comma-separated list of frontend origins when they differ from the local defaults (`http://localhost:4200,http://localhost:4201`).
-
-On the first startup, set `SUPER_ADMIN_USERNAME`, `SUPER_ADMIN_EMAIL`, and `SUPER_ADMIN_PASSWORD` to create the initial superadmin. The password is BCrypt-hashed; after the superadmin exists these settings do not reset it. Public sign-ups receive the `SALES` role but remain unapproved until the superadmin approves them in **Users**.
+> [!TIP]
+> To generate a cryptographically strong Base64 secret key in PowerShell:
+> ```powershell
+> [Convert]::ToBase64String([Security.Cryptography.RandomNumberGenerator]::GetBytes(32))
+> ```
 
 ---
 
-## Running the Full-Stack Application
+## Running the Application
 
 ### 1. Start the Backend API (Port 8082)
-From the repository root, open a terminal:
+From the repository root:
 
 ```powershell
 cd backend
 .\mvnw.cmd spring-boot:run
 ```
 
-The Spring Boot REST API will start at **`http://localhost:8082`**.
+The Spring Boot REST API starts at **`http://localhost:8082`**. On the initial startup, it automatically provisions the Superadmin account if one does not already exist.
 
 ### 2. Start the Frontend Client (Port 4200)
-Open a second terminal:
+In a second terminal:
 
 ```powershell
 cd frontend
 npm start
 ```
 
-The Angular client will start at **`http://localhost:4200`** with proxy routing configured in `proxy.conf.json` to automatically forward all `/api` calls to port `8082`.
+The Angular client starts at **`http://localhost:4200`** with proxy configurations in `proxy.conf.json` that automatically forward `/api` requests to `http://localhost:8082`.
 
 ---
 
-## Frontend Components & Modules
+## Validation & Automated Testing
+
+The full-stack codebase includes comprehensive automated test suites and pre-commit checks:
+
+### Run Backend Unit & Integration Tests
+```powershell
+cd backend
+.\mvnw.cmd test
+```
+Tests run with an isolated H2 in-memory profile covering `JwtSecurityTests`, `UserRoleSecurityTests`, `SuperAdminBootstrapTests`, and domain transactional workflows.
+
+### Run Frontend Unit Tests
+```powershell
+cd frontend
+npm test -- --watch=false
+```
+Executes all 13 test suites and 65 unit tests covering component creation, signals, auth routing, role guards, approval checks, and 3D parallax behaviors.
+
+### Verify Production Bundle
+```powershell
+cd frontend
+npm run build
+```
+
+---
+
+## Frontend Components & Shared Architecture
 
 | Module / Component | Route | Description |
 |---|---|---|
-| **[Login Terminal](file:///c:/Users/acer/Desktop/HCLTech-RIMS/frontend/src/app/components/login/login.component.ts)** | `/login` | Forest green authentication console with quick-access demo profiles (`ADMIN`, `MANAGER`, `SALES`) and registration. |
-| **[Command Center Dashboard](file:///c:/Users/acer/Desktop/HCLTech-RIMS/frontend/src/app/components/dashboard/dashboard.component.ts)** | `/dashboard` | 10-card Bento Grid featuring greeting sparklines, climate gauge, fulfillment rings, reorder timer, and dispatch bar charts. |
-| **[Inventory Matrix](file:///c:/Users/acer/Desktop/HCLTech-RIMS/frontend/src/app/components/inventory/inventory.component.ts)** | `/inventory` | Searchable stock matrix with warehouse/category filters, delta adjustment modal, audit override modal, and new stock binding. |
-| **[Product Catalog](file:///c:/Users/acer/Desktop/HCLTech-RIMS/frontend/src/app/components/products/products.component.ts)** | `/products` | Catalog manager with SKU validation, pricing, reorder thresholds, and category taxonomy drawer. |
-| **[Warehouses & Hubs](file:///c:/Users/acer/Desktop/HCLTech-RIMS/frontend/src/app/components/warehouses/warehouses.component.ts)** | `/warehouses` | Facility telemetry cards, fill percentage gauges, facility provisioning, and stored item manifests. |
-| **[Purchase Orders](file:///c:/Users/acer/Desktop/HCLTech-RIMS/frontend/src/app/components/purchase-orders/purchase-orders.component.ts)** | `/purchase-orders` | Dynamic PO line-item builder with auto-totals, dispatch actions, and shipment receiving that increments stock. |
-| **[Customer Sales Orders](file:///c:/Users/acer/Desktop/HCLTech-RIMS/frontend/src/app/components/customer-orders/customer-orders.component.ts)** | `/customer-orders` | Order creation with real-time warehouse stock checks, atomic reservation, and automatic stock restoration upon cancellation. |
-| **[Stock Movements](file:///c:/Users/acer/Desktop/HCLTech-RIMS/frontend/src/app/components/stock-movements/stock-movements.component.ts)** | `/stock-movements` | Immutable audit trail and modal for executing inter-warehouse stock transfers. |
-| **[Suppliers Directory](file:///c:/Users/acer/Desktop/HCLTech-RIMS/frontend/src/app/components/suppliers/suppliers.component.ts)** | `/suppliers` | Procurement vendor registry tracking contact emails, phones, and average delivery lead times. |
-| **[Operator Registry](file:///c:/Users/acer/Desktop/HCLTech-RIMS/frontend/src/app/components/users/users.component.ts)** | `/users` | Admin-only identity provisioning and role assignments (`ADMIN`, `WAREHOUSE_MANAGER`, `SALES`). |
+| **[Landing Page](frontend/src/app/components/landing/landing.component.ts)** | `/`, `/landing` | Public SaaS landing page with 3D warehouse analytics artwork, 5s levitation, bounded pointer parallax, and auth-aware CTAs. |
+| **[Login Terminal](frontend/src/app/components/login/login.component.ts)** | `/login` | Split-screen authentication terminal with 3D artwork and quick-switch demo profiles (`SUPER_ADMIN`, `ADMIN`, `MANAGER`, `SALES`). |
+| **[Registration Page](frontend/src/app/components/register/register.component.ts)** | `/register`, `/signup` | Operator self-service account registration with validation and quarantine approval state redirect. |
+| **[Command Dashboard](frontend/src/app/components/dashboard/dashboard.component.ts)** | `/dashboard` | 10-card Bento Grid featuring greeting sparklines, climate gauge, fulfillment rings, and weekly dispatch bar charts. |
+| **[Inventory Matrix](frontend/src/app/components/inventory/inventory.component.ts)** | `/inventory` | Searchable stock matrix with warehouse/category filters, delta adjustments, and exact physical audit modals. |
+| **[Product Catalog](frontend/src/app/components/products/products.component.ts)** | `/products` | Catalog manager with SKU validation, unit pricing, reorder thresholds, and category taxonomy drawer. |
+| **[Warehouses & Hubs](frontend/src/app/components/warehouses/warehouses.component.ts)** | `/warehouses` | Facility telemetry cards, fill percentage gauges, hub provisioning, and stored item manifests. |
+| **[Purchase Orders](frontend/src/app/components/purchase-orders/purchase-orders.component.ts)** | `/purchase-orders` | Dynamic PO builder with auto-totals, dispatch actions, and shipment receiving that increments inventory. |
+| **[Customer Sales Orders](frontend/src/app/components/customer-orders/customer-orders.component.ts)** | `/customer-orders` | Outbound sales orders with upfront stock validation, atomic reservation, and automatic stock restoration upon cancellation. |
+| **[Stock Movements](frontend/src/app/components/stock-movements/stock-movements.component.ts)** | `/stock-movements` | Immutable audit trail and modal for executing inter-warehouse stock transfers. |
+| **[Suppliers Directory](frontend/src/app/components/suppliers/suppliers.component.ts)** | `/suppliers` | Procurement vendor registry tracking contact emails, phones, and average delivery lead times. |
+| **[Operator Registry](frontend/src/app/components/users/users.component.ts)** | `/users` | Superadmin console for approving operator registrations, reassigning roles, and managing credentials. |
+| **[Navigation Shell](frontend/src/app/components/shell/shell.component.ts)** | *Layout* | Minimalist 76px icon dock sidebar with operator identity pill and theme toggle. |
+| **[Shared Components](frontend/src/app/shared/)** | *Modular* | Reusable `ConfirmModalComponent`, `PaginationComponent`, and `StatusBadgeComponent` across all views. |
