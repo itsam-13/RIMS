@@ -58,8 +58,10 @@ public class SecurityConfig {
                         // Admin and superadmin can perform destructive operations.
                         .requestMatchers(HttpMethod.DELETE, "/api/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
 
-                        // Inbound procurement & inventory modifications (Admin and Warehouse Manager only)
-                        .requestMatchers("/api/purchase-orders/**").hasAnyRole("ADMIN", "SUPER_ADMIN", "WAREHOUSE_MANAGER")
+                        // Inbound procurement modifications (Admin and Warehouse Manager only)
+                        .requestMatchers(HttpMethod.POST, "/api/purchase-orders/**").hasAnyRole("ADMIN", "SUPER_ADMIN", "WAREHOUSE_MANAGER")
+                        .requestMatchers(HttpMethod.PUT, "/api/purchase-orders/**").hasAnyRole("ADMIN", "SUPER_ADMIN", "WAREHOUSE_MANAGER")
+                        .requestMatchers(HttpMethod.PATCH, "/api/purchase-orders/**").hasAnyRole("ADMIN", "SUPER_ADMIN", "WAREHOUSE_MANAGER")
                         .requestMatchers(HttpMethod.POST, "/api/inventory/**").hasAnyRole("ADMIN", "SUPER_ADMIN", "WAREHOUSE_MANAGER")
                         .requestMatchers(HttpMethod.PUT, "/api/inventory/**").hasAnyRole("ADMIN", "SUPER_ADMIN", "WAREHOUSE_MANAGER")
                         .requestMatchers(HttpMethod.PATCH, "/api/inventory/**").hasAnyRole("ADMIN", "SUPER_ADMIN", "WAREHOUSE_MANAGER")

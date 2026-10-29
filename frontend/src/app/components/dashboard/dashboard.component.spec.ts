@@ -158,6 +158,20 @@ describe('DashboardComponent', () => {
     expect(mockAuthService.isApproved).toHaveReturnedWith(true);
   });
 
+  it('automatically loads the workspace when approval is granted', async () => {
+    mockAuthService.isApproved.mockReturnValue(false);
+    mockAuthService.refreshAccountStatus.mockImplementation(() => {
+      mockAuthService.isApproved.mockReturnValue(true);
+      return of({ username: 'alex', role: 'SALES', approved: true });
+    });
+
+    component.ngOnInit();
+    await new Promise(resolve => setTimeout(resolve, 0));
+
+    expect(mockApi.getProducts).toHaveBeenCalled();
+    fixture.destroy();
+  });
+
   it('should handle API failure gracefully and set error signal', () => {
     mockApi.getProducts.mockReturnValue(throwError(() => new Error('Server connection lost')));
 

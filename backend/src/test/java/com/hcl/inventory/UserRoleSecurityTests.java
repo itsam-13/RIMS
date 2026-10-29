@@ -71,6 +71,8 @@ class UserRoleSecurityTests {
 
         mvc.perform(get("/api/products").header("Authorization", bearer("SALES")))
                 .andExpect(status().isOk());
+        mvc.perform(get("/api/purchase-orders").header("Authorization", bearer("SALES")))
+                .andExpect(status().isOk());
         mvc.perform(get("/api/auth/status").header("Authorization", bearer("SALES")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.approved").value(true));

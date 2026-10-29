@@ -1,7 +1,8 @@
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, DestroyRef, inject, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
-import { forkJoin } from 'rxjs';
+import { EMPTY, catchError, exhaustMap, forkJoin, takeWhile, tap, timer } from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { InventoryApiService } from '../../services/inventory-api.service';
 import { AuthService } from '../../services/auth.service';
 import {
@@ -21,6 +22,7 @@ import {
 export class DashboardComponent implements OnInit {
   public authService = inject(AuthService);
   private api = inject(InventoryApiService);
+  private destroyRef = inject(DestroyRef);
 
   readonly today = new Date();
   readonly greeting = this.getGreeting();
@@ -67,6 +69,18 @@ export class DashboardComponent implements OnInit {
 
   ngOnInit() {
     if (this.authService.isApproved()) this.loadAllData();
+    else this.watchForApproval();
+  }
+
+  private watchForApproval() {
+    timer(0, 10_000).pipe(
+      exhaustMap(() => this.authService.refreshAccountStatus().pipe(catchError(() => EMPTY))),
+      tap(status => {
+        if (status.approved) this.loadAllData();
+      }),
+      takeWhile(status => !status.approved, true),
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe();
   }
 
   private getGreeting(): string {
