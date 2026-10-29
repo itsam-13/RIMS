@@ -71,6 +71,11 @@ describe('LandingComponent', () => {
     const signInLink = compiled.querySelector('.nav-action-link');
     expect(signInLink).toBeTruthy();
     expect(signInLink?.textContent).toContain('Sign In');
+    expect(compiled.querySelector('.nav-links')).toBeNull();
+
+    const signUpLink = compiled.querySelector('.nav-actions .btn-primary-pill');
+    expect(signUpLink?.getAttribute('href')).toBe('/register');
+    expect(signUpLink?.textContent).toContain('Sign Up');
 
     const createAccountBtn = compiled.querySelector('.btn-outline-explore');
     expect(createAccountBtn).toBeTruthy();
@@ -84,6 +89,8 @@ describe('LandingComponent', () => {
     const compiled = fixture.nativeElement as HTMLElement;
     const signInLink = compiled.querySelector('.nav-action-link');
     expect(signInLink).toBeNull();
+    expect(compiled.querySelector('.nav-links')).toBeTruthy();
+    expect(compiled.querySelector('.nav-actions .btn-primary-pill')?.textContent).toContain('Open Console');
 
     const createAccountBtn = compiled.querySelector('.btn-outline-explore');
     expect(createAccountBtn).toBeNull();

@@ -1,26 +1,10 @@
 /* HCLTech RIMS interface tokens */
 
 @font-face {
-  font-family: 'Embury Text';
-  src: local('Embury Text Regular'), local('EmburyText-Regular'), local('Embury Text');
-  font-weight: 400;
+  font-family: 'Geist';
+  src: url('/fonts/geist/Geist-Variable.woff2') format('woff2');
   font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'Embury Text';
-  src: local('Embury Text Bold'), local('EmburyText-Bold');
-  font-weight: 700;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'Embury Text';
-  src: local('Embury Text Italic'), local('EmburyText-Italic');
-  font-weight: 400;
-  font-style: italic;
+  font-weight: 100 900;
   font-display: swap;
 }
 
@@ -47,12 +31,12 @@
   --border-accent: rgba(205, 0, 0, 0.35);
   --border-focus: #CD0000;
 
-  --font-display: 'Orbitron', 'Space Grotesk', sans-serif;
-  --font-serif: 'Embury Text', 'Embury Text Regular', 'Lora', Georgia, 'Times New Roman', serif;
-  --font-heading: 'Orbitron', 'Embury Text', 'Lora', Georgia, serif;
-  --font-body: 'Hack', Consolas, 'Courier New', monospace;
-  --font-sans: 'Space Grotesk', 'Hack', Consolas, sans-serif;
-  --font-mono: 'Hack', Consolas, 'Courier New', monospace;
+  --font-display: 'Geist', sans-serif;
+  --font-serif: 'Geist', sans-serif;
+  --font-heading: 'Geist', sans-serif;
+  --font-body: 'Geist', sans-serif;
+  --font-sans: 'Geist', sans-serif;
+  --font-mono: 'Geist', sans-serif;
 
   --text-primary: #161E22;
   --text-secondary: #4A5568;
@@ -142,12 +126,12 @@
 html, body {
   height: 100%;
   width: 100%;
-  font-family: var(--font-body);
+  font-family: var(--font-sans);
   background-color: var(--bg-canvas);
   color: var(--text-primary);
-  font-size: 14.5px;
+  font-size: 15px;
   line-height: 1.55;
-  font-weight: 550;
+  font-weight: 400;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -204,7 +188,7 @@ code, kbd, samp, pre {
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-heading);
   color: var(--text-primary);
-  font-weight: 750;
+  font-weight: 700;
 }
 
 /* ==========================================================================
@@ -213,7 +197,7 @@ h1, h2, h3, h4, h5, h6 {
 .display-title {
   font-family: var(--font-heading);
   font-size: 1.85rem;
-  font-weight: 850;
+  font-weight: 800;
   letter-spacing: -0.025em;
   color: var(--text-primary);
   line-height: 1.2;
@@ -222,7 +206,7 @@ h1, h2, h3, h4, h5, h6 {
 .page-title {
   font-family: var(--font-heading);
   font-size: 1.5rem;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: -0.02em;
   color: var(--text-primary);
 }
@@ -230,14 +214,14 @@ h1, h2, h3, h4, h5, h6 {
 .section-title {
   font-family: var(--font-heading);
   font-size: 1.05rem;
-  font-weight: 750;
+  font-weight: 600;
   letter-spacing: -0.01em;
   color: var(--text-primary);
 }
 
 .technical-label {
   font-family: var(--font-body);
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--text-secondary);
@@ -260,7 +244,7 @@ h1, h2, h3, h4, h5, h6 {
   gap: 0.5rem;
   font-family: var(--font-body);
   font-size: 0.84rem;
-  font-weight: 650;
+  font-weight: 600;
   line-height: 1;
   padding: 0.58rem 1.15rem;
   min-height: 44px;
@@ -367,7 +351,7 @@ a.btn:active {
 }
 
 .form-label {
-  font-size: 0.74rem;
+  font-size: 0.75rem;
   color: var(--text-secondary);
   letter-spacing: 0.04em;
   font-weight: 700;
@@ -409,7 +393,7 @@ a.btn:active {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-weight: 700;
   padding: 0.25rem 0.65rem;
   border-radius: var(--radius-pill);
@@ -500,8 +484,8 @@ a.btn:active {
 .data-table th {
   background-color: var(--bg-card-hover);
   color: var(--text-secondary);
-  font-size: 0.72rem;
-  font-weight: 750;
+  font-size: 0.75rem;
+  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.07em;
   padding: 0.85rem 1.15rem;
@@ -514,7 +498,7 @@ a.btn:active {
   border-bottom: 1px solid var(--border-subtle);
   color: var(--text-primary);
   font-size: 0.86rem;
-  font-weight: 550;
+  font-weight: 500;
   vertical-align: middle;
 }
 

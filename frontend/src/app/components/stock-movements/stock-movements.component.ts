@@ -94,7 +94,7 @@ import { forkJoin } from 'rxjs';
               </td>
               <td>
                 <div style="font-weight: 600;">{{ mov.product?.name || 'Product #' + mov.productId }}</div>
-                <div class="mono text-muted" style="font-size: 0.72rem;">{{ mov.product?.sku }}</div>
+                <div class="mono text-muted" style="font-size: 0.75rem;">{{ mov.product?.sku }}</div>
               </td>
               <td class="mono">
                 <span *ngIf="mov.fromWarehouse">{{ mov.fromWarehouse.name }}</span>

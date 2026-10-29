@@ -58,7 +58,7 @@
 
     .wh-badge {
       font-family: var(--font-mono);
-      font-size: 0.7rem;
+      font-size: 0.75rem;
       font-weight: 600;
       padding: 0.2rem 0.5rem;
       border-radius: var(--radius-xs);
@@ -89,7 +89,7 @@
 
     .wh-metric-item .label {
       font-family: var(--font-mono);
-      font-size: 0.65rem;
+      font-size: 0.75rem;
       color: var(--text-muted);
       letter-spacing: 0.05em;
     }

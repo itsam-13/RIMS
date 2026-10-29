@@ -15,7 +15,7 @@ export class LandingComponent {
 
   mobileNavOpen = signal(false);
 
-  // Perspective tilt for hero interactive 3D fluid art
+  // Subtle pointer parallax for hero warehouse illustration (4–6px limit)
   tiltX = signal(0);
   tiltY = signal(0);
 
@@ -26,10 +26,11 @@ export class LandingComponent {
     const y = event.clientY - rect.top;
     const centerX = rect.width / 2;
     const centerY = rect.height / 2;
-    const rotateX = ((y - centerY) / centerY) * -9;
-    const rotateY = ((x - centerX) / centerX) * 9;
-    this.tiltX.set(Math.round(rotateX * 10) / 10);
-    this.tiltY.set(Math.round(rotateY * 10) / 10);
+    // Limit movement to ~5px in each direction
+    const moveX = ((x - centerX) / centerX) * 5;
+    const moveY = ((y - centerY) / centerY) * 5;
+    this.tiltX.set(Math.round(moveX * 10) / 10);
+    this.tiltY.set(Math.round(moveY * 10) / 10);
   }
 
   resetArtTilt() {

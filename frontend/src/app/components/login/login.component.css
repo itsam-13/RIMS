@@ -25,7 +25,7 @@
     radial-gradient(circle at 88% 82%, rgba(205, 0, 0, 0.04) 0%, transparent 45%);
   padding: 20px 24px;
   box-sizing: border-box;
-  font-family: var(--font-body, 'Hack', monospace);
+  font-family: var(--font-body, 'Geist', sans-serif);
   position: relative;
   overflow-x: hidden;
 }
@@ -62,7 +62,7 @@
 }
 
 .brand-badge-title {
-  font-family: var(--font-display, 'Orbitron', sans-serif);
+  font-family: var(--font-display, 'Geist', sans-serif);
   font-weight: 700;
   font-size: 19px;
   letter-spacing: 0.04em;
@@ -70,8 +70,8 @@
 }
 
 .brand-badge-tag {
-  font-family: var(--font-display, 'Orbitron', sans-serif);
-  font-size: 9.5px;
+  font-family: var(--font-display, 'Geist', sans-serif);
+  font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.12em;
   color: #CD0000;
@@ -85,7 +85,7 @@
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  font-family: var(--font-body, 'Hack', monospace);
+  font-family: var(--font-body, 'Geist', sans-serif);
   font-size: 12.5px;
   font-weight: 600;
   color: #4A5568;
@@ -204,7 +204,7 @@
 }
 
 .form-title {
-  font-family: var(--font-display, 'Orbitron', sans-serif);
+  font-family: var(--font-display, 'Geist', sans-serif);
   font-size: 26px;
   font-weight: 700;
   color: #161E22;
@@ -213,7 +213,7 @@
 }
 
 .form-instruction {
-  font-family: var(--font-body, 'Hack', monospace);
+  font-family: var(--font-body, 'Geist', sans-serif);
   font-size: 12px;
   line-height: 1.5;
   color: #6C7A89;
@@ -256,7 +256,7 @@
   border: none;
   background: transparent;
   outline: none;
-  font-family: var(--font-body, 'Hack', monospace);
+  font-family: var(--font-body, 'Geist', sans-serif);
   font-size: 13px;
   font-weight: 500;
   color: #161E22;
@@ -307,7 +307,7 @@
   background: none;
   border: none;
   padding: 0;
-  font-family: var(--font-body, 'Hack', monospace);
+  font-family: var(--font-body, 'Geist', sans-serif);
   font-size: 12px;
   color: #6C7A89;
   cursor: pointer;
@@ -328,7 +328,7 @@
   background: #CD0000;
   color: #FFFFFF;
   border: none;
-  font-family: var(--font-display, 'Orbitron', sans-serif);
+  font-family: var(--font-display, 'Geist', sans-serif);
   font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -458,22 +458,42 @@
   z-index: 1;
 }
 
-.auth-art-image {
+.auth-art-layers {
   position: relative;
   width: 195px;
   height: 195px;
-  object-fit: contain;
-  z-index: 2;
   filter: drop-shadow(0 14px 24px rgba(0, 0, 0, 0.35));
-  will-change: transform;
+  z-index: 2;
 }
 
-.floating-login-art {
-  animation: floatArtLogin 4.6s ease-in-out infinite;
+.auth-art-layer {
+  position: absolute;
+  inset: 0;
+  width: 195px;
+  height: 195px;
+  object-fit: contain;
+  pointer-events: none;
+  animation: authArtPieceDrift 4.8s cubic-bezier(0.77, 0, 0.175, 1) infinite;
 }
 
-.floating-register-art {
-  animation: floatArtRegister 4.8s ease-in-out infinite;
+.floating-login-art > .auth-art-layer {
+  animation-duration: 4.6s;
+}
+
+.auth-art-layer:nth-child(1) { --art-x: -1px; --art-y: -4px; --art-tilt: -0.45deg; animation-delay: -0.25s; }
+.auth-art-layer:nth-child(2) { --art-x: 1px; --art-y: -3px; --art-tilt: 0.4deg; animation-delay: -0.7s; }
+.auth-art-layer:nth-child(3) { --art-x: -1px; --art-y: -2px; --art-tilt: 0.25deg; animation-delay: -1.15s; }
+.auth-art-layer:nth-child(4) { --art-x: 0px; --art-y: -3px; --art-tilt: -0.15deg; animation-delay: -1.6s; }
+.auth-art-layer:nth-child(5) { --art-x: -2px; --art-y: -4px; --art-tilt: 0.4deg; animation-delay: -2.05s; }
+.auth-art-layer:nth-child(6) { --art-x: 2px; --art-y: -3px; --art-tilt: -0.3deg; animation-delay: -2.5s; }
+.auth-art-layer:nth-child(7) { --art-x: -1px; --art-y: -2px; --art-tilt: 0.15deg; animation-delay: -2.95s; }
+.auth-art-layer:nth-child(8) { --art-x: 1px; --art-y: -4px; --art-tilt: 0.5deg; animation-delay: -3.4s; }
+.auth-art-layer:nth-child(9) { --art-x: -2px; --art-y: -3px; --art-tilt: -0.4deg; animation-delay: -3.85s; }
+.auth-art-layer:nth-child(10) { --art-x: 1px; --art-y: -2px; --art-tilt: 0.3deg; animation-delay: -4.3s; }
+
+@keyframes authArtPieceDrift {
+  0%, 100% { transform: translate3d(0, 0, 0) rotate(0deg); }
+  50% { transform: translate3d(var(--art-x), var(--art-y), 0) rotate(var(--art-tilt)); }
 }
 
 .art-floor-shadow {
@@ -487,26 +507,8 @@
   z-index: 1;
 }
 
-@keyframes floatArtLogin {
-  0%, 100% {
-    transform: translateY(0px) rotate(0deg);
-  }
-  50% {
-    transform: translateY(-9px) rotate(-0.5deg);
-  }
-}
-
-@keyframes floatArtRegister {
-  0%, 100% {
-    transform: translateY(0px) rotate(0deg);
-  }
-  50% {
-    transform: translateY(-8px) rotate(0.6deg);
-  }
-}
-
 .overlay-title {
-  font-family: var(--font-display, 'Orbitron', sans-serif);
+  font-family: var(--font-display, 'Geist', sans-serif);
   font-size: 26px;
   font-weight: 700;
   color: #FFFFFF;
@@ -516,7 +518,7 @@
 }
 
 .overlay-desc {
-  font-family: var(--font-body, 'Hack', monospace);
+  font-family: var(--font-body, 'Geist', sans-serif);
   font-size: 13px;
   line-height: 1.6;
   color: rgba(255, 255, 255, 0.94);
@@ -532,7 +534,7 @@
   height: 46px;
   min-height: 44px;
   padding: 0 38px;
-  font-family: var(--font-display, 'Orbitron', sans-serif);
+  font-family: var(--font-display, 'Geist', sans-serif);
   font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -618,8 +620,8 @@
   align-items: center;
   justify-content: center;
   gap: 12px;
-  font-family: var(--font-body, 'Hack', monospace);
-  font-size: 11.5px;
+  font-family: var(--font-body, 'Geist', sans-serif);
+  font-size: 0.75rem;
   color: #6C7A89;
   padding-top: 14px;
   flex-wrap: wrap;
@@ -639,8 +641,7 @@
    Responsive & Accessibility Adaptations
 -------------------------------------------------------------------------- */
 @media (prefers-reduced-motion: reduce) {
-  .floating-login-art,
-  .floating-register-art {
+  .auth-art-layer {
     animation: none !important;
   }
   .form-panel,

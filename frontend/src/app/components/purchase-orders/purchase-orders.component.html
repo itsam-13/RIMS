@@ -67,11 +67,11 @@
               <td class="mono" style="font-size: 0.78rem;">{{ po.orderDate | slice:0:19 }}</td>
               <td>
                 <div style="font-weight: 600;">{{ po.supplier?.name || 'Supplier #' + po.supplierId }}</div>
-                <div class="text-muted" style="font-size: 0.72rem;">{{ po.supplier?.contactEmail }}</div>
+                <div class="text-muted" style="font-size: 0.75rem;">{{ po.supplier?.contactEmail }}</div>
               </td>
               <td>
                 <div style="font-weight: 500;">{{ po.warehouse?.name || 'Warehouse #' + po.warehouseId }}</div>
-                <div class="text-muted" style="font-size: 0.72rem;">{{ po.warehouse?.location }}</div>
+                <div class="text-muted" style="font-size: 0.75rem;">{{ po.warehouse?.location }}</div>
               </td>
               <td class="mono">
                 <button class="btn btn-ghost btn-sm" (click)="viewDetails(po)" style="font-family: var(--font-mono);">
@@ -283,7 +283,7 @@
                   <tr *ngFor="let item of selectedPO.items">
                     <td>
                       <strong>{{ item.product?.name || 'Product #' + item.productId }}</strong>
-                      <div class="mono text-muted" style="font-size: 0.72rem;">{{ item.product?.sku }}</div>
+                      <div class="mono text-muted" style="font-size: 0.75rem;">{{ item.product?.sku }}</div>
                     </td>
                     <td class="mono font-bold">{{ item.quantity }}</td>
                     <td class="mono">\${{ item.unitCost | number:'1.2-2' }}</td>
