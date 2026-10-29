@@ -17,7 +17,7 @@ export const roleGuard: CanActivateFn = (route: ActivatedRouteSnapshot) => {
   const userRole = authService.role();
 
   // Admin has access to all operational routes
-  if (!allowedRoles || authService.isAdmin() || (userRole && allowedRoles.includes(userRole))) {
+  if (!allowedRoles || authService.isSuperAdmin() || (userRole && allowedRoles.includes(userRole))) {
     return true;
   }
 

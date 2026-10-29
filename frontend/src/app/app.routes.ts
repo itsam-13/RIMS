@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './guards/auth.guard';
 import { roleGuard } from './guards/role.guard';
+import { approvalGuard } from './guards/approval.guard';
 
 export const routes: Routes = [
   {
@@ -34,6 +35,7 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./components/shell/shell.component').then((m) => m.ShellComponent),
     canActivate: [authGuard],
+    canActivateChild: [approvalGuard],
     children: [
       {
         path: 'dashboard',
@@ -98,7 +100,7 @@ export const routes: Routes = [
       {
         path: 'users',
         canActivate: [roleGuard],
-        data: { roles: ['ADMIN'] },
+        data: { roles: ['SUPER_ADMIN'] },
         loadComponent: () =>
           import('./components/users/users.component').then(
             (m) => m.UsersComponent

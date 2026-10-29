@@ -89,7 +89,7 @@ describe('RegisterComponent', () => {
     component.registerData.password = 'password123';
 
     mockAuthService.register.mockReturnValue(
-      of({ id: 10, username: 'newuser', email: 'newuser@mail.com', role: 'SALES' })
+      of({ id: 10, username: 'newuser', email: 'newuser@mail.com', role: 'SALES', approved: false })
     );
 
     component.onRegister();
@@ -100,8 +100,8 @@ describe('RegisterComponent', () => {
       password: 'password123'
     });
     expect(mockToastService.success).toHaveBeenCalledWith(
-      'Account for newuser created successfully! Please sign in to continue.',
-      'Registration complete'
+      'Account for newuser is ready. Sign in to see your approval status.',
+      'Account created'
     );
     expect(router.navigate).toHaveBeenCalledWith(['/login'], {
       queryParams: { username: 'newuser' }
@@ -127,5 +127,18 @@ describe('RegisterComponent', () => {
       'Registration failed'
     );
     expect(component.loading()).toBe(false);
+  });
+
+  it('should show field validation details returned by the API', () => {
+    component.registerData.username = 'newuser';
+    component.registerData.email = 'newuser@mail.com';
+    component.registerData.password = 'password123';
+    mockAuthService.register.mockReturnValue(
+      throwError(() => ({ error: { error: 'Validation Failed', details: { email: 'must be valid' } } }))
+    );
+
+    component.onRegister();
+
+    expect(mockToastService.error).toHaveBeenCalledWith('email: must be valid', 'Registration failed');
   });
 });

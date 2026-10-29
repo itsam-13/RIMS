@@ -150,4 +150,39 @@ describe('InventoryApiService', () => {
     expect(req.request.method).toBe('PATCH');
     req.flush(mockPO);
   });
+
+  it('assigns an account role through the dedicated role endpoint', () => {
+    service.assignUserRole(12, 'WAREHOUSE_MANAGER').subscribe(user => {
+      expect(user.role).toBe('WAREHOUSE_MANAGER');
+    });
+
+    const req = httpMock.expectOne('/api/users/12/role');
+    expect(req.request.method).toBe('PATCH');
+    expect(req.request.body).toEqual({ role: 'WAREHOUSE_MANAGER' });
+    req.flush({ id: 12, username: 'operator', email: 'operator@example.com', role: 'WAREHOUSE_MANAGER' });
+  });
+
+  it('approves an account through the approval endpoint', () => {
+    service.setUserApproval(12, true).subscribe(user => {
+      expect(user.approved).toBe(true);
+    });
+
+    const req = httpMock.expectOne('/api/users/12/approval');
+    expect(req.request.method).toBe('PATCH');
+    expect(req.request.body).toEqual({ approved: true });
+    req.flush({ id: 12, username: 'operator', email: 'operator@example.com', role: 'SALES', approved: true });
+  });
+
+  it('creates a user from superadmin user management', () => {
+    service.createUser({
+      username: 'managed', email: 'managed@example.com', password: 'valid-password', role: 'SALES'
+    }).subscribe(user => expect(user.approved).toBe(true));
+
+    const req = httpMock.expectOne('/api/users');
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body).toEqual({
+      username: 'managed', email: 'managed@example.com', password: 'valid-password', role: 'SALES'
+    });
+    req.flush({ id: 13, username: 'managed', email: 'managed@example.com', role: 'SALES', approved: true });
+  });
 });

@@ -1,8 +1,8 @@
 import { Injectable, signal, computed } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { map, Observable } from 'rxjs';
-import { AuthResponse, User, UserRole } from '../models/inventory.models';
+import { map, Observable, tap } from 'rxjs';
+import { AccountStatus, AuthResponse, User, UserRole } from '../models/inventory.models';
 
 const TOKEN_KEY = 'rims_auth_token';
 const USER_KEY = 'rims_auth_user';
@@ -12,15 +12,17 @@ const USER_KEY = 'rims_auth_user';
 })
 export class AuthService {
   private tokenSignal = signal<string | null>(this.getStoredToken());
-  private currentUserSignal = signal<{ username: string; role: UserRole } | null>(this.getStoredUser());
+  private currentUserSignal = signal<{ username: string; role: UserRole; approved: boolean } | null>(this.getStoredUser());
 
   public readonly token = this.tokenSignal.asReadonly();
   public readonly currentUser = this.currentUserSignal.asReadonly();
   public readonly isAuthenticated = computed(() => !!this.tokenSignal());
   public readonly role = computed(() => this.currentUserSignal()?.role ?? null);
-  public readonly isAdmin = computed(() => this.role() === 'ADMIN');
-  public readonly isWarehouseManager = computed(() => this.role() === 'WAREHOUSE_MANAGER' || this.role() === 'ADMIN');
-  public readonly isSales = computed(() => this.role() === 'SALES' || this.role() === 'ADMIN');
+  public readonly isApproved = computed(() => this.currentUserSignal()?.approved ?? false);
+  public readonly isSuperAdmin = computed(() => this.role() === 'SUPER_ADMIN');
+  public readonly isAdmin = computed(() => this.role() === 'ADMIN' || this.isSuperAdmin());
+  public readonly isWarehouseManager = computed(() => this.role() === 'WAREHOUSE_MANAGER' || this.isAdmin());
+  public readonly isSales = computed(() => this.role() === 'SALES' || this.isAdmin());
 
   constructor(private http: HttpClient, private router: Router) {}
 
@@ -32,10 +34,12 @@ export class AuthService {
     }
   }
 
-  private getStoredUser(): { username: string; role: UserRole } | null {
+  private getStoredUser(): { username: string; role: UserRole; approved: boolean } | null {
     try {
       const data = localStorage.getItem(USER_KEY);
-      return data ? JSON.parse(data) : null;
+      if (!data) return null;
+      const user = JSON.parse(data);
+      return { ...user, approved: user.approved ?? user.role !== 'PENDING' };
     } catch {
       return null;
     }
@@ -50,16 +54,28 @@ export class AuthService {
         }
 
         const username = response.username?.trim() || credentials.username.trim();
-        const userData = { username, role: response.role };
+        const approved = response.approved ?? response.role !== 'PENDING';
+        const userData = { username, role: response.role, approved };
 
         localStorage.setItem(TOKEN_KEY, token);
         localStorage.setItem(USER_KEY, JSON.stringify(userData));
         this.tokenSignal.set(token);
         this.currentUserSignal.set(userData);
 
-        return { ...response, token, username };
+        return { ...response, token, username, approved };
       })
     );
+  }
+
+  refreshAccountStatus(): Observable<AccountStatus> {
+    return this.http.get<AccountStatus>('/api/auth/status').pipe(tap(status => {
+      this.currentUserSignal.set(status);
+      try {
+        localStorage.setItem(USER_KEY, JSON.stringify(status));
+      } catch {
+        // Keep the refreshed approval state in memory if storage is unavailable.
+      }
+    }));
   }
 
   register(user: Partial<User>): Observable<User> {

@@ -9,12 +9,12 @@ import { UserRole } from '../models/inventory.models';
 describe('roleGuard', () => {
   let isAuthSignal = signal<boolean>(false);
   let roleSignal = signal<UserRole | null>(null);
-  let isAdminSignal = signal<boolean>(false);
+  let isSuperAdminSignal = signal<boolean>(false);
 
   let mockAuthService: {
     isAuthenticated: typeof isAuthSignal;
     role: typeof roleSignal;
-    isAdmin: typeof isAdminSignal;
+    isSuperAdmin: typeof isSuperAdminSignal;
   };
 
   let mockToastService: {
@@ -26,12 +26,12 @@ describe('roleGuard', () => {
   beforeEach(() => {
     isAuthSignal.set(false);
     roleSignal.set(null);
-    isAdminSignal.set(false);
+    isSuperAdminSignal.set(false);
 
     mockAuthService = {
       isAuthenticated: isAuthSignal,
       role: roleSignal,
-      isAdmin: isAdminSignal
+      isSuperAdmin: isSuperAdminSignal
     };
 
     mockToastService = {
@@ -63,10 +63,10 @@ describe('roleGuard', () => {
     expect((result as UrlTree).toString()).toBe('/login');
   });
 
-  it('should allow access to ADMIN regardless of route role restriction', () => {
+  it('should allow access to SUPER_ADMIN regardless of route role restriction', () => {
     isAuthSignal.set(true);
-    roleSignal.set('ADMIN');
-    isAdminSignal.set(true);
+    roleSignal.set('SUPER_ADMIN');
+    isSuperAdminSignal.set(true);
     const route = createRouteSnapshot(['WAREHOUSE_MANAGER']);
 
     const result = TestBed.runInInjectionContext(() => roleGuard(route, {} as any));
@@ -76,17 +76,26 @@ describe('roleGuard', () => {
   it('should allow access to WAREHOUSE_MANAGER when role is included in route data', () => {
     isAuthSignal.set(true);
     roleSignal.set('WAREHOUSE_MANAGER');
-    isAdminSignal.set(false);
+    isSuperAdminSignal.set(false);
     const route = createRouteSnapshot(['ADMIN', 'WAREHOUSE_MANAGER']);
 
     const result = TestBed.runInInjectionContext(() => roleGuard(route, {} as any));
     expect(result).toBe(true);
   });
 
+  it('does not let ADMIN access the superadmin user route', () => {
+    isAuthSignal.set(true);
+    roleSignal.set('ADMIN');
+    const route = createRouteSnapshot(['SUPER_ADMIN']);
+
+    const result = TestBed.runInInjectionContext(() => roleGuard(route, {} as any));
+    expect((result as UrlTree).toString()).toBe('/dashboard');
+  });
+
   it('should deny access, trigger toast error, and redirect to /dashboard when user role is not allowed', () => {
     isAuthSignal.set(true);
     roleSignal.set('SALES');
-    isAdminSignal.set(false);
+    isSuperAdminSignal.set(false);
     const route = createRouteSnapshot(['ADMIN', 'WAREHOUSE_MANAGER']);
 
     const result = TestBed.runInInjectionContext(() => roleGuard(route, {} as any));

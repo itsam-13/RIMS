@@ -2,7 +2,9 @@ package com.hcl.inventory.controller;
 
 import com.hcl.inventory.dto.LoginRequest;
 import com.hcl.inventory.dto.LoginResponse;
+import com.hcl.inventory.dto.AccountStatusResponse;
 import com.hcl.inventory.model.User;
+import com.hcl.inventory.model.Role;
 import com.hcl.inventory.security.JwtUtil;
 import com.hcl.inventory.service.UserService;
 import jakarta.persistence.EntityNotFoundException;
@@ -10,7 +12,10 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -31,25 +36,32 @@ public class AuthController {
         try {
             user = userService.getUserByUsername(request.getUsername());
         } catch (EntityNotFoundException e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of(
-                    "error", "No account found with username '" + request.getUsername() + "'. Please sign up first.",
-                    "userNotFound", true
-            ));
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of(
-                    "error", "Unable to sign in. Please verify your details.",
-                    "userNotFound", false
-            ));
+            return invalidCredentials();
         }
 
         if (!userService.checkPassword(user, request.getPassword())) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of(
-                    "error", "Invalid password. Please check your credentials and try again.",
-                    "userNotFound", false
-            ));
+            return invalidCredentials();
         }
 
         String token = jwtUtil.generateToken(user.getId(), user.getUsername(), user.getRole().name());
-        return ResponseEntity.ok(new LoginResponse(token, user.getUsername(), user.getRole().name()));
+        return ResponseEntity.ok(new LoginResponse(token, user.getUsername(), user.getRole().name(),
+                user.isApproved() && user.getRole() != Role.PENDING));
+    }
+
+    @GetMapping("/status")
+    public ResponseEntity<?> accountStatus(Authentication authentication) {
+        if (authentication == null || authentication instanceof AnonymousAuthenticationToken) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        User user = userService.getUserByUsername(authentication.getName());
+        return ResponseEntity.ok(new AccountStatusResponse(user.getUsername(), user.getRole().name(),
+                user.isApproved() && user.getRole() != Role.PENDING));
+    }
+
+    private ResponseEntity<Map<String, Object>> invalidCredentials() {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of(
+                "error", "Invalid username or password",
+                "userNotFound", false
+        ));
     }
 }

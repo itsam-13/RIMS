@@ -10,7 +10,8 @@ import {
   PurchaseOrder,
   CustomerOrder,
   StockMovement,
-  User
+  User,
+  AssignableUserRole
 } from '../models/inventory.models';
 
 @Injectable({
@@ -237,6 +238,18 @@ export class InventoryApiService {
 
   updateUser(id: number, user: Partial<User>): Observable<User> {
     return this.http.put<User>(`${this.baseUrl}/users/${id}`, user);
+  }
+
+  assignUserRole(id: number, role: AssignableUserRole): Observable<User> {
+    return this.http.patch<User>(`${this.baseUrl}/users/${id}/role`, { role });
+  }
+
+  setUserApproval(id: number, approved: boolean): Observable<User> {
+    return this.http.patch<User>(`${this.baseUrl}/users/${id}/approval`, { approved });
+  }
+
+  createUser(user: Pick<User, 'username' | 'email'> & { password: string; role: AssignableUserRole }): Observable<User> {
+    return this.http.post<User>(`${this.baseUrl}/users`, user);
   }
 
   deleteUser(id: number): Observable<void> {

@@ -1,10 +1,10 @@
 package com.hcl.inventory.service;
 
 import com.hcl.inventory.model.User;
+import com.hcl.inventory.model.Role;
 import com.hcl.inventory.repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -31,9 +31,26 @@ public class UserService {
                 .orElseThrow(() -> new EntityNotFoundException("User not found with username: " + username));
     }
 
-    // Registers a new user, hashing the plaintext password before it ever
-    // touches the database.
+    // Public sign-up starts with SALES access, pending superadmin approval.
     public User registerUser(User user) {
+        validateUnique(user);
+        user.setRole(Role.SALES);
+        user.setApproved(false);
+        user.setPassword(passwordEncoder.encode(user.getPassword()));
+        return userRepository.save(user);
+    }
+
+    public User createUser(User user) {
+        validateUnique(user);
+        if (user.getRole() == null || user.getRole() == Role.SUPER_ADMIN || user.getRole() == Role.PENDING) {
+            throw new IllegalArgumentException("Choose an operational role for the new account");
+        }
+        user.setApproved(true);
+        user.setPassword(passwordEncoder.encode(user.getPassword()));
+        return userRepository.save(user);
+    }
+
+    private void validateUnique(User user) {
         if (userRepository.existsByUsername(user.getUsername())) {
             throw new IllegalArgumentException("Username '" + user.getUsername() + "' is already taken");
         }
@@ -41,30 +58,37 @@ public class UserService {
             throw new IllegalArgumentException("An account with email '" + user.getEmail() + "' already exists");
         }
 
-        // Enforce role security: public self-registration assigns SALES (or ADMIN if system has 0 users).
-        // Only an authenticated ADMIN can provision specific roles (WAREHOUSE_MANAGER, ADMIN).
-        var auth = SecurityContextHolder.getContext().getAuthentication();
-        boolean isAdmin = auth != null && auth.getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+    }
 
-        if (!isAdmin) {
-            if (userRepository.count() == 0) {
-                user.setRole(User.Role.ADMIN);
-            } else {
-                user.setRole(User.Role.SALES);
-            }
-        } else if (user.getRole() == null) {
-            user.setRole(User.Role.SALES);
+    public User assignRole(Long id, Role role) {
+        if (role == Role.SUPER_ADMIN || role == Role.PENDING) {
+            throw new IllegalArgumentException("Choose an operational role; approval is managed separately");
         }
+        User existing = getUserById(id);
+        if (existing.getRole() == Role.SUPER_ADMIN) {
+            throw new IllegalArgumentException("The superadmin account cannot be changed here");
+        }
+        existing.setRole(role);
+        return userRepository.save(existing);
+    }
 
-        user.setPassword(passwordEncoder.encode(user.getPassword()));
-        return userRepository.save(user);
+    public User setApproval(Long id, boolean approved) {
+        User existing = getUserById(id);
+        if (!approved && existing.getRole() == Role.SUPER_ADMIN) {
+            throw new IllegalArgumentException("The superadmin account cannot be disabled");
+        }
+        existing.setApproved(approved);
+        return userRepository.save(existing);
     }
 
     // Updates profile fields. Password is only changed if a new one is
     // provided — an empty/null password in the request leaves it unchanged.
     public User updateUser(Long id, User updatedUser) {
         User existing = getUserById(id);
+        if (existing.getRole() == Role.SUPER_ADMIN
+                || updatedUser.getRole() == Role.SUPER_ADMIN) {
+            throw new IllegalArgumentException("The superadmin account cannot be changed here");
+        }
 
         if (!existing.getUsername().equals(updatedUser.getUsername())
                 && userRepository.existsByUsername(updatedUser.getUsername())) {
@@ -89,8 +113,9 @@ public class UserService {
     }
 
     public void deleteUser(Long id) {
-        if (!userRepository.existsById(id)) {
-            throw new EntityNotFoundException("User not found with id: " + id);
+        User user = getUserById(id);
+        if (user.getRole() == Role.SUPER_ADMIN) {
+            throw new IllegalArgumentException("The superadmin account cannot be deleted here");
         }
         userRepository.deleteById(id);
     }

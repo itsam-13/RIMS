@@ -1,6 +1,8 @@
 package com.hcl.inventory.controller;
 
 import com.hcl.inventory.model.User;
+import com.hcl.inventory.dto.RoleAssignmentRequest;
+import com.hcl.inventory.dto.ApprovalUpdateRequest;
 import com.hcl.inventory.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -27,8 +29,22 @@ public class UserController {
         return ResponseEntity.ok(userService.getUserById(id));
     }
 
-    // Real login (with a JWT returned) comes with the security layer later.
-    // This just creates the account.
+    @PatchMapping("/{id}/role")
+    public ResponseEntity<User> assignRole(@PathVariable Long id, @Valid @RequestBody RoleAssignmentRequest request) {
+        return ResponseEntity.ok(userService.assignRole(id, request.role()));
+    }
+
+    @PatchMapping("/{id}/approval")
+    public ResponseEntity<User> setApproval(@PathVariable Long id, @Valid @RequestBody ApprovalUpdateRequest request) {
+        return ResponseEntity.ok(userService.setApproval(id, request.approved()));
+    }
+
+    @PostMapping
+    public ResponseEntity<User> createUser(@Valid @RequestBody User user) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(userService.createUser(user));
+    }
+
+    // Public registration always creates an unapproved SALES account.
     @PostMapping("/register")
     public ResponseEntity<User> registerUser(@Valid @RequestBody User user) {
         User saved = userService.registerUser(user);

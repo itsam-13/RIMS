@@ -53,6 +53,8 @@ describe('DashboardComponent', () => {
     isAdmin: ReturnType<typeof vi.fn>;
     isWarehouseManager: ReturnType<typeof vi.fn>;
     isSales: ReturnType<typeof vi.fn>;
+    isApproved: ReturnType<typeof vi.fn>;
+    refreshAccountStatus: ReturnType<typeof vi.fn>;
   };
 
   beforeEach(async () => {
@@ -67,7 +69,9 @@ describe('DashboardComponent', () => {
       currentUser: vi.fn().mockReturnValue({ username: 'alex', role: 'ADMIN' }),
       isAdmin: vi.fn().mockReturnValue(true),
       isWarehouseManager: vi.fn().mockReturnValue(true),
-      isSales: vi.fn().mockReturnValue(true)
+      isSales: vi.fn().mockReturnValue(true),
+      isApproved: vi.fn().mockReturnValue(true),
+      refreshAccountStatus: vi.fn().mockReturnValue(of({ username: 'alex', role: 'SALES', approved: true }))
     };
 
     await TestBed.configureTestingModule({
@@ -130,6 +134,28 @@ describe('DashboardComponent', () => {
     expect(component.purchaseOrders()).toEqual(mockPOs);
     expect(component.stockMovements()).toEqual(mockMovements);
     expect(component.loading()).toBe(false);
+  });
+
+  it('shows an approval notice and loads no workspace data for an unapproved account', () => {
+    mockAuthService.isApproved.mockReturnValue(false);
+    fixture.detectChanges();
+    component.loadAllData();
+
+    expect(fixture.nativeElement.textContent).toContain('Account awaiting approval');
+    expect(mockApi.getProducts).not.toHaveBeenCalled();
+    expect(mockApi.getInventory).not.toHaveBeenCalled();
+  });
+
+  it('loads the workspace after approval is refreshed', () => {
+    mockAuthService.isApproved.mockReturnValue(false);
+    mockAuthService.refreshAccountStatus.mockImplementation(() => {
+      mockAuthService.isApproved.mockReturnValue(true);
+      return of({ username: 'alex', role: 'SALES', approved: true });
+    });
+    component.checkApproval();
+
+    expect(mockApi.getProducts).toHaveBeenCalled();
+    expect(mockAuthService.isApproved).toHaveReturnedWith(true);
   });
 
   it('should handle API failure gracefully and set error signal', () => {

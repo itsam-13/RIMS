@@ -33,6 +33,7 @@ export class DashboardComponent implements OnInit {
   purchaseOrders = signal<PurchaseOrder[]>([]);
   stockMovements = signal<StockMovement[]>([]);
   lastUpdated = signal<Date | null>(null);
+  checkingApproval = signal(false);
 
   totalUnits = computed(() =>
     this.inventory().reduce((sum, row) => sum + (row.quantity || 0), 0)
@@ -65,7 +66,7 @@ export class DashboardComponent implements OnInit {
   );
 
   ngOnInit() {
-    this.loadAllData();
+    if (this.authService.isApproved()) this.loadAllData();
   }
 
   private getGreeting(): string {
@@ -76,6 +77,7 @@ export class DashboardComponent implements OnInit {
   }
 
   loadAllData() {
+    if (!this.authService.isApproved()) return;
     if (this.loading()) return;
     this.loading.set(true);
     this.error.set('');
@@ -98,6 +100,18 @@ export class DashboardComponent implements OnInit {
         this.error.set('The overview could not be loaded. Check your connection and try again.');
         this.loading.set(false);
       }
+    });
+  }
+
+  checkApproval() {
+    if (this.checkingApproval()) return;
+    this.checkingApproval.set(true);
+    this.authService.refreshAccountStatus().subscribe({
+      next: (status) => {
+        this.checkingApproval.set(false);
+        if (status.approved) this.loadAllData();
+      },
+      error: () => this.checkingApproval.set(false)
     });
   }
 }

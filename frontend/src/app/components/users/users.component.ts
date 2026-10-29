@@ -3,8 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { InventoryApiService } from '../../services/inventory-api.service';
 import { ToastService } from '../../services/toast.service';
-import { AuthService } from '../../services/auth.service';
-import { User, UserRole } from '../../models/inventory.models';
+import { AssignableUserRole, User } from '../../models/inventory.models';
 
 @Component({
   selector: 'app-users',
@@ -25,7 +24,7 @@ import { User, UserRole } from '../../models/inventory.models';
           </button>
           <button class="btn btn-primary btn-sm" (click)="openCreateModal()">
             <i class="ri-user-add-line"></i>
-            <span>PROVISION NEW OPERATOR</span>
+            <span>CREATE USER</span>
           </button>
         </div>
       </div>
@@ -39,6 +38,7 @@ import { User, UserRole } from '../../models/inventory.models';
               <th>USERNAME</th>
               <th>CORPORATE EMAIL</th>
               <th>ACCESS ROLE</th>
+              <th>APPROVAL</th>
               <th style="text-align: right;">OPERATIONS</th>
             </tr>
           </thead>
@@ -56,20 +56,33 @@ import { User, UserRole } from '../../models/inventory.models';
                   [ngClass]="{
                     'badge-purple': u.role === 'ADMIN',
                     'badge-info': u.role === 'WAREHOUSE_MANAGER',
-                    'badge-success': u.role === 'SALES'
+                    'badge-success': u.role === 'SALES',
+                    'badge-warning': u.role === 'PENDING',
+                    'badge-danger': u.role === 'SUPER_ADMIN'
                   }"
                 >
                   <span class="badge-dot"></span>
                   {{ u.role }}
                 </span>
               </td>
+              <td>
+                <span class="badge" [ngClass]="u.approved ? 'badge-success' : 'badge-warning'">
+                  {{ u.approved ? 'APPROVED' : 'AWAITING APPROVAL' }}
+                </span>
+              </td>
               <td style="text-align: right;">
                 <div class="action-btn-group">
-                  <button class="btn btn-secondary btn-sm" (click)="openEditModal(u)" title="Modify Permissions">
+                  <button
+                    *ngIf="u.role !== 'SUPER_ADMIN'"
+                    class="btn btn-secondary btn-sm"
+                    (click)="setApproval(u, !u.approved)"
+                  >{{ u.approved ? 'REVOKE' : 'APPROVE' }}</button>
+                  <button *ngIf="u.role !== 'SUPER_ADMIN'" class="btn btn-secondary btn-sm" (click)="openEditModal(u)" title="Modify Permissions">
                     <i class="ri-edit-line"></i> EDIT
                   </button>
                   <button
                     class="btn btn-danger btn-sm"
+                    *ngIf="u.role !== 'SUPER_ADMIN'"
                     (click)="deleteUser(u)"
                     title="Revoke & Delete Access"
                   >
@@ -82,13 +95,13 @@ import { User, UserRole } from '../../models/inventory.models';
         </table>
       </div>
 
-      <!-- MODAL: PROVISION / EDIT USER -->
+      <!-- MODAL: CREATE USER / ASSIGN ROLE -->
       <div class="modal-backdrop" *ngIf="showModal">
         <div class="modal-dialog">
           <div class="modal-header">
             <div>
-              <div class="technical-label">{{ isEditing ? 'UPDATE ACCESS PERMISSIONS' : 'IDENTITY PROVISIONING' }}</div>
-              <div class="section-title">{{ isEditing ? 'Edit: ' + userForm.username : 'Create Operator Account' }}</div>
+              <div class="technical-label">{{ isCreating ? 'IDENTITY PROVISIONING' : 'ACCESS PERMISSIONS' }}</div>
+              <div class="section-title">{{ isCreating ? 'Create user' : 'Assign role: ' + userForm.username }}</div>
             </div>
             <button class="btn btn-ghost btn-sm" (click)="showModal = false">
               <i class="ri-close-line"></i>
@@ -101,7 +114,7 @@ import { User, UserRole } from '../../models/inventory.models';
                 type="text"
                 class="form-control input-mono"
                 [(ngModel)]="userForm.username"
-                placeholder="e.g. operator_smith"
+                [readonly]="!isCreating"
                 required
               />
             </div>
@@ -112,26 +125,21 @@ import { User, UserRole } from '../../models/inventory.models';
                 type="email"
                 class="form-control"
                 [(ngModel)]="userForm.email"
-                placeholder="user@hcltech.com"
+                [readonly]="!isCreating"
                 required
               />
             </div>
 
-            <div class="form-group" *ngIf="!isEditing">
+            <div class="form-group" *ngIf="isCreating">
               <label class="form-label">PASSWORD</label>
-              <input
-                type="password"
-                class="form-control input-mono"
-                [(ngModel)]="userForm.password"
-                placeholder="••••••••••••"
-                required
-              />
+              <input type="password" class="form-control input-mono" [(ngModel)]="userForm.password" required />
+              <small>New accounts created here are approved immediately.</small>
             </div>
 
             <div class="form-group">
               <label class="form-label">ASSIGNED SECURITY ROLE</label>
               <select class="form-select" [(ngModel)]="userForm.role" required>
-                <option value="ADMIN">ADMIN — Master Root Access</option>
+                <option value="ADMIN">ADMIN — Full operational access</option>
                 <option value="WAREHOUSE_MANAGER">WAREHOUSE_MANAGER — Inventory, Transfers & POs</option>
                 <option value="SALES">SALES — Order Creation & Customer Orders</option>
               </select>
@@ -142,9 +150,9 @@ import { User, UserRole } from '../../models/inventory.models';
             <button
               class="btn btn-primary"
               (click)="saveUser()"
-              [disabled]="!userForm.username || !userForm.email || (!isEditing && !userForm.password)"
+              [disabled]="!userForm.role"
             >
-              {{ isEditing ? 'UPDATE PERMISSIONS' : 'PROVISION ACCOUNT' }}
+              {{ isCreating ? 'CREATE APPROVED USER' : 'UPDATE ROLE' }}
             </button>
           </div>
         </div>
@@ -181,15 +189,14 @@ import { User, UserRole } from '../../models/inventory.models';
 export class UsersComponent implements OnInit {
   private api = inject(InventoryApiService);
   private toast = inject(ToastService);
-  private authService = inject(AuthService);
 
   loading = signal<boolean>(false);
   users = signal<User[]>([]);
 
   showModal = false;
-  isEditing = false;
+  isCreating = false;
   editingId: number | null = null;
-  userForm: { username: string; email: string; password?: string; role: UserRole } = {
+  userForm: { username: string; email: string; password: string; role: AssignableUserRole } = {
     username: '',
     email: '',
     password: '',
@@ -215,61 +222,51 @@ export class UsersComponent implements OnInit {
   }
 
   openCreateModal() {
-    this.isEditing = false;
+    this.isCreating = true;
     this.editingId = null;
-    this.userForm = {
-      username: '',
-      email: '',
-      password: '',
-      role: 'SALES'
-    };
+    this.userForm = { username: '', email: '', password: '', role: 'SALES' };
     this.showModal = true;
   }
 
   openEditModal(u: User) {
-    this.isEditing = true;
+    this.isCreating = false;
     this.editingId = u.id!;
     this.userForm = {
       username: u.username,
       email: u.email,
-      role: u.role
+      password: '',
+      role: u.role === 'PENDING' || u.role === 'SUPER_ADMIN' ? 'SALES' : u.role
     };
     this.showModal = true;
   }
 
   saveUser() {
-    if (this.isEditing && this.editingId) {
-      this.api.updateUser(this.editingId, {
-        username: this.userForm.username,
-        email: this.userForm.email,
-        role: this.userForm.role
-      }).subscribe({
-        next: () => {
-          this.toast.success('User updated.');
-          this.showModal = false;
-          this.loadUsers();
-        },
-        error: (err) => {
-          this.toast.error(err.error?.error || 'Failed to update user.');
-        }
-      });
-    } else {
-      this.authService.register({
-        username: this.userForm.username,
-        email: this.userForm.email,
-        password: this.userForm.password,
-        role: this.userForm.role
-      }).subscribe({
-        next: (u) => {
-          this.toast.success(`Operator ${u.username} provisioned.`);
-          this.showModal = false;
-          this.loadUsers();
-        },
-        error: (err) => {
-          this.toast.error(err.error?.error || 'Failed to provision account.');
-        }
-      });
-    }
+    const request = this.isCreating
+      ? this.api.createUser(this.userForm)
+      : this.editingId
+        ? this.api.assignUserRole(this.editingId, this.userForm.role)
+        : null;
+    if (!request) return;
+    request.subscribe({
+      next: () => {
+        this.toast.success(this.isCreating
+          ? `Approved account created for ${this.userForm.username}.`
+          : `Role updated for ${this.userForm.username}.`);
+        this.showModal = false;
+        this.loadUsers();
+      },
+      error: (err) => this.toast.error(err.error?.error || 'Failed to assign role.')
+    });
+  }
+
+  setApproval(user: User, approved: boolean) {
+    this.api.setUserApproval(user.id!, approved).subscribe({
+      next: () => {
+        this.toast.success(approved ? `Access approved for ${user.username}.` : `Access revoked for ${user.username}.`);
+        this.loadUsers();
+      },
+      error: (err) => this.toast.error(err.error?.error || 'Failed to update account approval.')
+    });
   }
 
   deleteUser(u: User) {

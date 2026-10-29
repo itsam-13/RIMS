@@ -48,10 +48,9 @@ public class CustomerOrder {
     private User user;
 
     @NotEmpty
-    @Valid
     @OneToMany(mappedBy = "customerOrder", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference
-    private List<OrderItem> items = new ArrayList<>();
+    private List<@Valid OrderItem> items = new ArrayList<>();
 
     // Transient: used only to receive ids from incoming JSON.
     @Transient

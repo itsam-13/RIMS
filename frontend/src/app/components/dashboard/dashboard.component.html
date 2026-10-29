@@ -1,3 +1,15 @@
+<section *ngIf="!authService.isApproved(); else approvedDashboard" class="approval-notice" role="status">
+  <i class="ri-time-line" aria-hidden="true"></i>
+  <div>
+    <h1>Account awaiting approval</h1>
+    <p>Your account has the SALES role. A superadmin must approve it before you can access workspace data or make changes.</p>
+    <button type="button" class="btn btn-secondary" (click)="checkApproval()" [disabled]="checkingApproval()">
+      {{ checkingApproval() ? 'Checking' : 'Check approval status' }}
+    </button>
+  </div>
+</section>
+
+<ng-template #approvedDashboard>
 <div class="dashboard">
       <header class="dashboard-header">
         <div class="welcome-copy">
@@ -186,3 +198,4 @@
         Updated {{ lastUpdated() | date: 'shortTime' }}
       </p>
     </div>
+</ng-template>

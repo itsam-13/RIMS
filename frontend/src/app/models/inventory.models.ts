@@ -1,4 +1,5 @@
-export type UserRole = 'ADMIN' | 'WAREHOUSE_MANAGER' | 'SALES';
+export type UserRole = 'PENDING' | 'SUPER_ADMIN' | 'ADMIN' | 'WAREHOUSE_MANAGER' | 'SALES';
+export type AssignableUserRole = Exclude<UserRole, 'PENDING' | 'SUPER_ADMIN'>;
 
 export interface User {
   id?: number;
@@ -6,12 +7,20 @@ export interface User {
   email: string;
   password?: string;
   role: UserRole;
+  approved?: boolean;
 }
 
 export interface AuthResponse {
   token: string;
   username: string;
   role: UserRole;
+  approved: boolean;
+}
+
+export interface AccountStatus {
+  username: string;
+  role: UserRole;
+  approved: boolean;
 }
 
 export interface Category {

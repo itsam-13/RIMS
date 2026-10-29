@@ -141,8 +141,8 @@ export class RegisterComponent implements OnInit {
       next: (user) => {
         this.loading.set(false);
         this.toastService.success(
-          `Account for ${user.username} created successfully! Please sign in to continue.`,
-          'Registration complete'
+          `Account for ${user.username} is ready. Sign in to see your approval status.`,
+          'Account created'
         );
         void this.router.navigate(['/login'], {
           queryParams: { username: user.username }
@@ -150,7 +150,14 @@ export class RegisterComponent implements OnInit {
       },
       error: (err) => {
         this.loading.set(false);
+        const validationDetails = err.error?.details;
+        const validationMessage = validationDetails && typeof validationDetails === 'object'
+          ? Object.entries(validationDetails)
+              .map(([field, message]) => `${field}: ${message}`)
+              .join('; ')
+          : '';
         const msg =
+          validationMessage ||
           err.error?.error ||
           err.error?.message ||
           'Account creation failed. Please check your information and try again.';

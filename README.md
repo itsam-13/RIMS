@@ -8,7 +8,7 @@
 [![Spring Security](https://img.shields.io/badge/Spring_Security-JWT-6DB33F?style=for-the-badge&logo=spring-security&logoColor=white)](https://spring.io/projects/spring-security)
 [![License](https://img.shields.io/badge/License-Proprietary-red?style=for-the-badge)](#)
 
-An enterprise-grade, distributed **Retail Inventory Management System (RIMS)** built with a **Spring Boot 4 (Java 27)** REST API backend and an **Angular 22** client frontend. The platform provides real-time multi-warehouse stock auditing, supplier procurement lifecycles, atomic customer order fulfillment with upfront stock reservation, inter-hub logistics transfers, and stateless JWT role-based security (`ADMIN`, `WAREHOUSE_MANAGER`, `SALES`).
+An enterprise-grade, distributed **Retail Inventory Management System (RIMS)** built with a **Spring Boot 4 (Java 27)** REST API backend and an **Angular 22** client frontend. The platform provides real-time multi-warehouse stock auditing, supplier procurement lifecycles, atomic customer order fulfillment with upfront stock reservation, inter-hub logistics transfers, and stateless JWT role-based security (`SUPER_ADMIN`, `ADMIN`, `WAREHOUSE_MANAGER`, `SALES`, `PENDING`).
 
 The frontend features a **Deep Forest Green** color palette and a modern **10-Card Bento-Grid** executive command dashboard with glowing telemetry rings, neon sparkline curves, and a minimalist icon dock sidebar.
 
@@ -75,7 +75,7 @@ The user interface follows a bespoke **Deep Forest Green Bento-Grid** design sys
   - `IN`: Supplier deliveries and new stock arrivals.
   - `OUT`: Dispatches and shrinkage adjustments.
   - `TRANSFER`: Atomic inter-warehouse transfers (simultaneous source decrement and destination increment).
-- **Stateless Role-Based JWT Security**: Secured endpoints with HMAC SHA-256 tokens, BCrypt password hashing, write-only password serialization, and granular role authorization (`ADMIN`, `WAREHOUSE_MANAGER`, `SALES`).
+- **Stateless Role-Based JWT Security**: Secured endpoints with HMAC SHA-256 tokens, BCrypt password hashing, write-only password serialization, and granular role authorization (`SUPER_ADMIN`, `ADMIN`, `WAREHOUSE_MANAGER`, `SALES`, `PENDING`).
 
 ---
 
@@ -102,7 +102,7 @@ flowchart TD
         Proxy["Angular Proxy /api (Forward to 8082)"]
         CORS["CorsFilter"]
         JWTFilter["JwtAuthFilter\n(HMAC-SHA256 Token Validation)"]
-        SecCtx["SecurityContextHolder\n(Role Enforcement: ADMIN, WAREHOUSE_MANAGER, SALES)"]
+        SecCtx["SecurityContextHolder\n(Role Enforcement: SUPER_ADMIN, ADMIN, WAREHOUSE_MANAGER, SALES)"]
         
         Interceptor --> Proxy
         Proxy --> CORS
@@ -298,6 +298,8 @@ classDiagram
 
     class Role {
         <<enumeration>>
+        PENDING
+        SUPER_ADMIN
         ADMIN
         WAREHOUSE_MANAGER
         SALES
@@ -351,7 +353,7 @@ classDiagram
 
 | Entity | Table | Key Fields | Description |
 | :--- | :--- | :--- | :--- |
-| **`User`** | `users` | `id`, `username`, `email`, `password`, `role` | Operator accounts (`ADMIN`, `WAREHOUSE_MANAGER`, `SALES`). Passwords are write-only. |
+| **`User`** | `users` | `id`, `username`, `email`, `password`, `role` | Operator accounts. Public registrations are `PENDING`; passwords are write-only. |
 | **`Category`** | `categories` | `id`, `name` | Product taxonomy and grouping. |
 | **`Product`** | `product` | `id`, `name`, `sku`, `price`, `reorderLevel`, `category_id` | Catalog item with unique SKU and reorder thresholds. |
 | **`Warehouse`** | `warehouses` | `id`, `name`, `location`, `capacity` | Physical storage facilities. |
@@ -575,17 +577,14 @@ Authentication is handled via stateless **JSON Web Tokens (JWT)**:
 - **Public Routes**:
   - `POST /api/auth/login` — Returns token and role.
   - `POST /api/users/register` — Registers a new user account with BCrypt password hashing.
-- **Admin Only**:
-  - All `DELETE /api/**` endpoints are strictly restricted to `ROLE_ADMIN`.
+- **Superadmin Only**:
+  - User listing, provisioning, approval, role assignment, account updates, and deletion require `ROLE_SUPER_ADMIN`.
+  - Public registrations start with `SALES` but remain unapproved; sign-in shows an approval notice while workspace APIs stay blocked.
 - **Granular Role Permissions**:
-  - `ADMIN`: Unrestricted system privileges.
+  - `SUPER_ADMIN`: Full operational access and user administration.
+  - `ADMIN`: Full operational access, without user administration.
   - `WAREHOUSE_MANAGER`: Inventory management, stock movements, and purchase orders.
   - `SALES`: Customer sales order creation and fulfillment tracking.
-- **Quick Demo Profiles**:
-  - **Admin**: `admin` / `admin123` (or `password`)
-  - **Manager**: `manager` / `password`
-  - **Sales**: `sales` / `password`
-
 ---
 
 ## REST API Reference
@@ -596,11 +595,14 @@ All backend endpoints are rooted at `/api`:
 | Method | Endpoint | Access | Summary |
 | :--- | :--- | :--- | :--- |
 | `POST` | `/api/auth/login` | Public | Authenticate user credentials and receive JWT |
-| `POST` | `/api/users/register` | Public | Register a new user |
-| `GET` | `/api/users` | Authenticated | List all registered operators |
-| `GET` | `/api/users/{id}` | Authenticated | Get user profile by ID |
-| `PUT` | `/api/users/{id}` | Authenticated | Update user profile and role |
-| `DELETE`| `/api/users/{id}` | **Admin** | Revoke and remove user account |
+| `POST` | `/api/users/register` | Public | Register an unapproved `SALES` account |
+| `POST` | `/api/users` | **Superadmin** | Create an approved operator |
+| `GET` | `/api/users` | **Superadmin** | List all registered operators |
+| `GET` | `/api/users/{id}` | **Superadmin** | Get user profile by ID |
+| `PATCH` | `/api/users/{id}/role` | **Superadmin** | Assign an operational role |
+| `PATCH` | `/api/users/{id}/approval` | **Superadmin** | Approve or revoke workspace access |
+| `PUT` | `/api/users/{id}` | **Superadmin** | Update user profile |
+| `DELETE`| `/api/users/{id}` | **Superadmin** | Revoke and remove a non-superadmin account |
 
 ### 📦 Products & Categories
 | Method | Endpoint | Access | Summary |
@@ -690,6 +692,16 @@ spring:
     username: postgres
     password: your_password
 ```
+
+Set `DB_PASSWORD` and `JWT_SECRET` in the backend environment (or `.env`). `JWT_SECRET` must be Base64 encoded and contain at least 32 random bytes; for PowerShell, generate one with:
+
+```powershell
+[Convert]::ToBase64String([Security.Cryptography.RandomNumberGenerator]::GetBytes(32))
+```
+
+Set `APP_CORS_ALLOWED_ORIGINS` to a comma-separated list of frontend origins when they differ from the local defaults (`http://localhost:4200,http://localhost:4201`).
+
+On the first startup, set `SUPER_ADMIN_USERNAME`, `SUPER_ADMIN_EMAIL`, and `SUPER_ADMIN_PASSWORD` to create the initial superadmin. The password is BCrypt-hashed; after the superadmin exists these settings do not reset it. Public sign-ups receive the `SALES` role but remain unapproved until the superadmin approves them in **Users**.
 
 ---
 

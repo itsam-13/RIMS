@@ -8,4 +8,13 @@ spring:
     password: your_database_password_here
 
 jwt:
-  secret: your_jwt_secret_key_here
+  secret: your_base64_encoded_32_byte_jwt_key_here
+
+# Configure these only for the first application startup to create the root account.
+# After it exists, remove these values. They are ignored on later starts.
+app:
+  bootstrap:
+    super-admin:
+      username: superAdmin
+      email: superAdmin@mail.com
+      password: replace_with_a_strong_unique_password

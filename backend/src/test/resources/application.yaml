@@ -10,5 +10,9 @@ spring:
     show-sql: false
 
 jwt:
-  secret: test_jwt_secret_key_for_h2_profile_min_256_bits_length_123456789
+  secret: MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIzNDU2Nzg5MDE=
   expiration-ms: 86400000
+
+app:
+  cors:
+    allowed-origins: http://localhost:4200,http://localhost:4201

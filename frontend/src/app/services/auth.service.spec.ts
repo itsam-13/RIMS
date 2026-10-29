@@ -34,6 +34,7 @@ describe('AuthService', () => {
   it('should be created and start unauthenticated when storage is empty', () => {
     expect(service).toBeTruthy();
     expect(service.isAuthenticated()).toBe(false);
+    expect(service.isApproved()).toBe(false);
     expect(service.currentUser()).toBeNull();
     expect(service.token()).toBeNull();
     expect(service.isAdmin()).toBe(false);
@@ -45,7 +46,8 @@ describe('AuthService', () => {
     const mockResponse: AuthResponse = {
       token: 'jwt-test-token-123',
       username: 'adminuser',
-      role: 'ADMIN'
+      role: 'ADMIN',
+      approved: true
     };
 
     let resultResponse: AuthResponse | undefined;
@@ -60,16 +62,19 @@ describe('AuthService', () => {
 
     expect(resultResponse).toEqual(mockResponse);
     expect(service.token()).toBe('jwt-test-token-123');
-    expect(service.currentUser()).toEqual({ username: 'adminuser', role: 'ADMIN' });
+    expect(service.currentUser()).toEqual({ username: 'adminuser', role: 'ADMIN', approved: true });
+    expect(service.isApproved()).toBe(true);
     expect(service.isAuthenticated()).toBe(true);
     expect(service.isAdmin()).toBe(true);
+    expect(service.isSuperAdmin()).toBe(false);
     expect(service.isWarehouseManager()).toBe(true);
     expect(service.isSales()).toBe(true);
 
     expect(localStorage.getItem('rims_auth_token')).toBe('jwt-test-token-123');
     expect(JSON.parse(localStorage.getItem('rims_auth_user') || '{}')).toEqual({
       username: 'adminuser',
-      role: 'ADMIN'
+      role: 'ADMIN',
+      approved: true
     });
   });
 
@@ -77,7 +82,8 @@ describe('AuthService', () => {
     const mockResponse: AuthResponse = {
       token: 'jwt-manager-token',
       username: 'manager1',
-      role: 'WAREHOUSE_MANAGER'
+      role: 'WAREHOUSE_MANAGER',
+      approved: true
     };
 
     service.login({ username: 'manager1', password: 'password' }).subscribe();
@@ -93,7 +99,8 @@ describe('AuthService', () => {
     const mockResponse: AuthResponse = {
       token: 'jwt-sales-token',
       username: 'salesperson',
-      role: 'SALES'
+      role: 'SALES',
+      approved: true
     };
 
     service.login({ username: 'salesperson', password: 'password' }).subscribe();
@@ -105,9 +112,37 @@ describe('AuthService', () => {
     expect(service.isSales()).toBe(true);
   });
 
+  it('grants the superadmin all workspace capabilities', () => {
+    service.login({ username: 'root', password: 'password' }).subscribe();
+    httpMock.expectOne('/api/auth/login').flush({
+      token: 'root-token', username: 'root', role: 'SUPER_ADMIN', approved: true
+    });
+
+    expect(service.isSuperAdmin()).toBe(true);
+    expect(service.isAdmin()).toBe(true);
+    expect(service.isWarehouseManager()).toBe(true);
+    expect(service.isSales()).toBe(true);
+  });
+
+  it('refreshes approval status without requiring a new login', () => {
+    service.login({ username: 'salesperson', password: 'password' }).subscribe();
+    httpMock.expectOne('/api/auth/login').flush({
+      token: 'jwt-sales-token', username: 'salesperson', role: 'SALES', approved: false
+    });
+    expect(service.isApproved()).toBe(false);
+
+    service.refreshAccountStatus().subscribe();
+    const req = httpMock.expectOne('/api/auth/status');
+    expect(req.request.method).toBe('GET');
+    req.flush({ username: 'salesperson', role: 'SALES', approved: true });
+
+    expect(service.isApproved()).toBe(true);
+    expect(service.currentUser()?.role).toBe('SALES');
+  });
+
   it('should clear signals, remove items from localStorage, and navigate to /login on logout()', () => {
     localStorage.setItem('rims_auth_token', 'initial-token');
-    localStorage.setItem('rims_auth_user', JSON.stringify({ username: 'test', role: 'ADMIN' }));
+    localStorage.setItem('rims_auth_user', JSON.stringify({ username: 'test', role: 'ADMIN', approved: true }));
 
     service.logout();
 

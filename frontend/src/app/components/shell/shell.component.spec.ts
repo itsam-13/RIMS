@@ -9,15 +9,18 @@ describe('ShellComponent', () => {
   let component: ShellComponent;
   let fixture: ComponentFixture<ShellComponent>;
 
-  const mockUser = signal<{ username: string; role: UserRole } | null>({
+  const mockUser = signal<{ username: string; role: UserRole; approved: boolean } | null>({
     username: 'alex1',
-    role: 'WAREHOUSE_MANAGER'
+    role: 'WAREHOUSE_MANAGER',
+    approved: true
   });
 
   const mockAuthService = {
     currentUser: mockUser,
     isWarehouseManager: () => true,
     isAdmin: () => false,
+    isSuperAdmin: () => false,
+    isApproved: () => true,
     isSales: () => false,
     logout: vi.fn()
   };

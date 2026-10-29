@@ -139,8 +139,8 @@ export class LoginComponent implements OnInit {
       next: (user) => {
         this.loading.set(false);
         this.toastService.success(
-          `Account for ${user.username} created successfully! Please sign in to continue.`,
-          'Registration complete'
+          `Account for ${user.username} is ready. Sign in to see your approval status.`,
+          'Account created'
         );
         this.loginData.username = user.username;
         this.switchToSignIn();

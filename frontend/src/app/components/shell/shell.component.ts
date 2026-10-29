@@ -25,6 +25,7 @@ export class ShellComponent implements OnInit {
 
   get userRoleLabel(): string {
     const role = this.authService.currentUser()?.role;
+    if (role === 'SUPER_ADMIN') return 'Superadmin';
     if (role === 'ADMIN') return 'Administrator';
     if (role === 'WAREHOUSE_MANAGER') return 'Warehouse manager';
     if (role === 'SALES') return 'Sales';
